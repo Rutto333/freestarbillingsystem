@@ -1,0 +1,40 @@
+{
+            "TransactionType": "Pay Bill",
+            "TransID": "TGI7GPCUNV",
+            "TransTime": "20250718100224",
+            "TransAmount": "2.00",
+            "BusinessShortCode": "4164679",
+            "BillRefNumber": "4QRJSCTSEX",
+            "InvoiceNumber": "",
+            "OrgAccountBalance": "2264.00",
+            "ThirdPartyTransID": "",
+            "MSISDN": "13004031c9049aa90e018ca78450f88a1cf6c480eb99a49a0f4935e480b9bc8c",
+            "FirstName": "Elkanah"
+        }
+        {
+            "TransactionType": "Pay Bill",
+            "TransID": "TGI3GPYQY3",
+            "TransTime": "20250718100637",
+            "TransAmount": "2.00",
+            "BusinessShortCode": "4164679",
+            "BillRefNumber": "4QRJSCTSEX",
+            "InvoiceNumber": "",
+            "OrgAccountBalance": "2266.00",
+            "ThirdPartyTransID": "",
+            "MSISDN": "13004031c9049aa90e018ca78450f88a1cf6c480eb99a49a0f4935e480b9bc8c",
+            "FirstName": "Elkanah"
+        }
+        {
+            "TransactionType": "Pay Bill",
+            "TransID": "TGI0H7XY8G",
+            "TransTime": "20250718120621",
+            "TransAmount": "3.00",
+            "BusinessShortCode": "4164679",
+            "BillRefNumber": "4QRJSCTSEX",
+            "InvoiceNumber": "",
+            "OrgAccountBalance": "2269.00",
+            "ThirdPartyTransID": "",
+            "MSISDN": "13004031c9049aa90e018ca78450f88a1cf6c480eb99a49a0f4935e480b9bc8c",
+            "FirstName": "Elkanah"
+        }
+        
