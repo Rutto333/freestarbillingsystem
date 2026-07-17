@@ -8,6 +8,7 @@ register_menu("Mikrotik IP Binding", true, "ip_list_ui", 'AFTER_NETWORKS');
 
 
 function ip_list_ui() {
+    ensure_mikrotik_bindings_table();
     global $ui;
     _admin();
 
@@ -42,6 +43,7 @@ function ip_list_ui() {
 }
 
 function ip_list_remove() {
+    ensure_mikrotik_bindings_table();
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') return;
 
     $id = $_POST['id'];
@@ -83,4 +85,38 @@ function ip_list_remove() {
     $binding->delete();
 
     echo json_encode(["status" => "success"]);
+}
+
+function ensure_mikrotik_bindings_table()
+{
+    $db = ORM::get_db();
+
+    // Check if table exists
+    $stmt = $db->query("SHOW TABLES LIKE 'tbl_mikrotik_bindings'");
+
+    if ($stmt->rowCount() > 0) {
+        return;
+    }
+
+    // Create table
+    $sql = "
+    CREATE TABLE `tbl_mikrotik_bindings` (
+      `id` int(11) NOT NULL AUTO_INCREMENT,
+      `router_id` int(11) NOT NULL,
+      `mikrotik_id` varchar(50) NOT NULL,
+      `ip_address` varchar(45) DEFAULT NULL,
+      `mac_address` varchar(17) DEFAULT NULL,
+      `device_name` varchar(100) DEFAULT NULL,
+      `type` enum('regular','bypassed','blocked') DEFAULT 'regular',
+      `comment` varchar(255) DEFAULT NULL,
+      `package_id` int(11) DEFAULT NULL,
+      `package_name` varchar(100) DEFAULT NULL,
+      `expires` datetime DEFAULT NULL,
+      PRIMARY KEY (`id`),
+      KEY `router_id` (`router_id`),
+      KEY `package_id` (`package_id`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+    ";
+
+    $db->exec($sql);
 }
