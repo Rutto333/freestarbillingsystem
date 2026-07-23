@@ -45,7 +45,6 @@ class Message
 
         if ($use_system) {
             if (!self::deductTokenBalance(1)) {
-                self::logMessage('SMS', $phone, $txt, 'Error', 'Insufficient token balance for system SMS');
                 return "";
             }
             $sms_url = !empty($config['system_sms_url']) ? $config['system_sms_url'] : '';
@@ -63,17 +62,13 @@ class Message
                 try {
                     foreach ($txts as $t) {
                         self::MikrotikSendSMS($sms_url, $phone, $t);
-                        self::logMessage('SMS', $phone, $t, 'Success');
                     }
                 } catch (Throwable $e) {
-                    self::logMessage('SMS', $phone, $txt, 'Error', $e->getMessage());
                 }
             } else {
                 try {
                     self::MikrotikSendSMS($sms_url, $phone, $txt);
-                    self::logMessage('MikroTikSMS', $phone, $txt, 'Success');
                 } catch (Throwable $e) {
-                    self::logMessage('MikroTikSMS', $phone, $txt, 'Error', $e->getMessage());
                 }
             }
         } else {
@@ -81,10 +76,8 @@ class Message
             $smsurl = str_replace('[text]', urlencode($txt), $smsurl);
             try {
                 $response = Http::getData($smsurl);
-                self::logMessage('SMS HTTP Response', $phone, $txt, 'Success', $response);
                 return $response;
             } catch (Throwable $e) {
-                self::logMessage('SMS HTTP Request', $phone, $txt, 'Error', $e->getMessage());
             }
         }
     }
@@ -102,7 +95,6 @@ class Message
 
         if ($use_system) {
             if (!self::deductTokenBalance(1)) {
-                self::logMessage('WhatsApp', $phone, $txt, 'Error', 'Insufficient token balance for system WhatsApp');
                 return "";
             }
             $wa_url = !empty($config['system_wa_url']) ? $config['system_wa_url'] : '';
@@ -119,10 +111,8 @@ class Message
 
         try {
             $response = Http::getData($waurl);
-            self::logMessage('WhatsApp HTTP Response', $phone, $txt, 'Success', $response);
             return $response;
         } catch (Throwable $e) {
-            self::logMessage('WhatsApp HTTP Request', $phone, $txt, 'Error', $e->getMessage());
         }
     }
 
@@ -152,7 +142,6 @@ class Message
             $config['token_message'] = $new_balance; // keep in-memory config in sync
             return true;
         } catch (Throwable $e) {
-            self::logMessage('Token Balance', 'system', (string) $cost, 'Error', $e->getMessage());
             return false;
         }
     }
