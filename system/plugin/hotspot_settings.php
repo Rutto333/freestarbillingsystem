@@ -307,6 +307,9 @@ function hotspot_ticker_ads()
 {
     global $ui, $conn;
 
+    // Ensure table exists before doing anything else
+    ensure_ticker_ads_table($conn);
+
     // Handle DELETE
     if (isset($_GET['delete_ad'])) {
         $id = (int)$_GET['delete_ad'];
@@ -360,4 +363,28 @@ function hotspot_ticker_ads()
     $ticker_ads = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     $ui->assign('ticker_ads', $ticker_ads);
+}
+
+/**
+ * Creates tbl_ticker_ads if it doesn't already exist.
+ */
+function ensure_ticker_ads_table($conn)
+{
+    try {
+        $conn->exec(
+            "CREATE TABLE IF NOT EXISTS tbl_ticker_ads (
+                id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+                message VARCHAR(500) NOT NULL,
+                link VARCHAR(500) DEFAULT NULL,
+                status TINYINT(1) NOT NULL DEFAULT 1,
+                sort_order INT NOT NULL DEFAULT 0,
+                created_at DATETIME NOT NULL,
+                PRIMARY KEY (id),
+                KEY idx_status (status),
+                KEY idx_sort_order (sort_order)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"
+        );
+    } catch (Exception $e) {
+        error_log("Error ensuring tbl_ticker_ads table: " . $e->getMessage());
+    }
 }

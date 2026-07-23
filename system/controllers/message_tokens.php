@@ -16,10 +16,19 @@ $ui->assign('_admin', $admin);
 switch ($action) {
 
     case 'token':
-        $tokenBalance = ORM::for_table('tbl_appconfig')->where('setting', 'token_message')->find_one();
-        $ui->assign('tokenBalance', $tokenBalance ? $tokenBalance->value : 0);
-        $ui->display('admin/message/message_tokens.tpl');
-        break;
+            $tokenBalance = ORM::for_table('tbl_appconfig')->where('setting', 'token_message')->find_one();
+
+            if (!$tokenBalance) {
+                // Row doesn't exist yet, create it
+                $tokenBalance = ORM::for_table('tbl_appconfig')->create();
+                $tokenBalance->setting = 'token_message';
+                $tokenBalance->value = 0;
+                $tokenBalance->save();
+            }
+
+            $ui->assign('tokenBalance', $tokenBalance->value);
+            $ui->display('admin/message/message_tokens.tpl');
+            break;
 
     case 'token/recharge':
         header('Content-Type: application/json');
