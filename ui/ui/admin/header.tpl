@@ -604,11 +604,6 @@
                     <li class="menu-header">
                         <i class="fa fa-users"></i> SERVICES
                     </li>
-                    <li {if $_system_menu eq 'mikrotik_monitor' } {/if}>
-                        <a href="{Text::url('mikrotik-monitor')}">
-                            <span>{Lang::T('Online Users')}</span>
-                        </a>
-                    </li>
                     <li {if $_routes[1] eq 'list' }{/if}>
                         <a href="{Text::url('plan/list')}">
                             <span>{Lang::T('Active Users')}</span>
