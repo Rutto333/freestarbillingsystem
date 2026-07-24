@@ -13,11 +13,11 @@
 							{Lang::T('Customer')}
 						</label>
 						<div class="col-md-6">
-							<select 
-								{if $cust}{else}id="personSelect"{/if} 
-								class="form-control select2" 
-								name="id_customer" 
-								style="width: 100%" 
+							<select
+								{if $cust}{else}id="personSelect"{/if}
+								class="form-control select2"
+								name="id_customer"
+								style="width: 100%"
 								data-placeholder="{Lang::T('Select a customer')}...">
 								{if $cust}
 									<option value="{$cust['id']}">
@@ -34,8 +34,10 @@
                         <div class="col-md-6">
                             <select class="form-control select2" name="via" id="via">
                                 <option value="sms" selected>{Lang::T('via SMS')}</option>
-                                <option value="wa">{Lang::T('Via WhatsApp')}</option>
-                                <option value="both">{Lang::T('Via WhatsApp and SMS')}</option>
+                                {if !$system_notification_enabled}
+                                    <option value="wa">{Lang::T('Via WhatsApp')}</option>
+                                    <option value="both">{Lang::T('Via WhatsApp and SMS')}</option>
+                                {/if}
                             </select>
                         </div>
                     </div>
@@ -44,11 +46,11 @@
                     <div class="form-group">
                         <label class="col-md-2 control-label">{Lang::T('Message')}</label>
                         <div class="col-md-6">
-                            <textarea 
-                                class="form-control" 
-                                id="message" 
+                            <textarea
+                                class="form-control"
+                                id="message"
                                 name="message"
-                                placeholder="{Lang::T('Compose your message...')}" 
+                                placeholder="{Lang::T('Compose your message...')}"
                                 rows="5">
                             </textarea>
                         </div>
@@ -68,9 +70,9 @@
                     <!-- Buttons -->
                     <div class="form-group">
                         <div class="col-lg-offset-2 col-lg-10">
-                            <button 
+                            <button
                                 class="btn btn-success"
-                                onclick="return ask(this, '{Lang::T('Continue the process of sending messages')}?')" 
+                                onclick="return ask(this, '{Lang::T('Continue the process of sending messages')}?')"
                                 type="submit">
                                 {Lang::T('Send Message')}
                             </button>

@@ -587,7 +587,7 @@ async function handleFreeAccess(event, planId, routerId) {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                phone_number: '',   // empty — no phone needed for free plans
+                phone_number: '',   // empty ï¿½ no phone needed for free plans
                 plan_id: planId,
                 router_id: routerId,
                 account_number: accountNumber

@@ -38,6 +38,9 @@ function Alloworigins()
         }elseif ($type == "redeem_voucher") {
             RedeemVoucher();
 
+        } elseif ($type == "recharge_tokens") {
+            rechargeTokens();
+
         } elseif ($type == "recharge_pppoe") {
             rechargePppoe();
 
@@ -712,6 +715,88 @@ function MpesaCodeLogin()
         }
     } else {
         sendJsonMpesaCodeResponse("error", "Mpesa code $mpesa_code not found");
+    }
+}
+
+function rechargeTokens()
+{
+    try {
+        header('Content-Type: application/json; charset=utf-8');
+
+        // Only allow POST
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            echo json_encode([
+                "success" => false,
+                "message" => "Invalid request method"
+            ]);
+            exit();
+        }
+
+        // Read JSON body
+        $input = json_decode(file_get_contents('php://input'), true);
+
+        if (!$input) {
+            echo json_encode([
+                "success" => false,
+                "message" => "Invalid JSON"
+            ]);
+            exit();
+        }
+
+        $phone  = trim($input['phone'] ?? '');
+        $amount = floatval($input['amount'] ?? 0);
+
+        if (empty($phone) || $amount <= 0) {
+            echo json_encode([
+                "success" => false,
+                "message" => "Phone and amount are required"
+            ]);
+            exit();
+        }
+
+        // Call your STK Push endpoint
+        $url = U . "plugin/initiateRechargeTokens";
+
+        $fields = [
+            "phone"  => $phone,
+            "amount" => $amount
+        ];
+
+        $postvars = json_encode($fields);
+
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $postvars);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'Content-Type: application/json',
+            'Content-Length: ' . strlen($postvars)
+        ]);
+
+        $result = curl_exec($ch);
+
+        if ($result === false) {
+            echo json_encode([
+                "success" => false,
+                "message" => curl_error($ch)
+            ]);
+            curl_close($ch);
+            exit();
+        }
+
+        curl_close($ch);
+
+        // Return response from initiateRechargeTokens
+        echo $result;
+        exit();
+
+    } catch (Exception $e) {
+        echo json_encode([
+            "success" => false,
+            "message" => $e->getMessage()
+        ]);
+        exit();
     }
 }
 

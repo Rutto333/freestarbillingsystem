@@ -22,6 +22,11 @@ switch ($action) {
             _alert(Lang::T('You do not have permission to access this page'), 'danger', "dashboard");
         }
 
+                // System SMS/WhatsApp status — used by the UI to show which mode is active
+        $systemNotificationEnabled = isset($config['use_system_notification']) && $config['use_system_notification'] == 'yes';
+        $ui->assign('system_notification_enabled', $systemNotificationEnabled);
+        $ui->assign('system_sms_configured', !empty($config['system_sms_url']));
+
         $appUrl = APP_URL;
 
         $select2_customer = <<<EOT
@@ -113,6 +118,10 @@ EOT;
         if (!in_array($admin['user_type'], ['SuperAdmin', 'Admin', 'Agent', 'Sales'])) {
             _alert(Lang::T('You do not have permission to access this page'), 'danger', "dashboard");
         }
+            // System SMS/WhatsApp status — used by the UI to show which mode is active
+        $systemNotificationEnabled = isset($config['use_system_notification']) && $config['use_system_notification'] == 'yes';
+        $ui->assign('system_notification_enabled', $systemNotificationEnabled);
+        $ui->assign('system_sms_configured', !empty($config['system_sms_url']));
 
         $ui->assign('routers', ORM::forTable('tbl_routers')->where('enabled', '1')->find_many());
         $ui->display('admin/message/bulk.tpl');

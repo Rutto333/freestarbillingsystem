@@ -199,7 +199,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
 
         try {
-            const response = await fetch(`${appUrl}/index.php?_route=plugin/CreateHotspotuser&type=recharge_tokens`, {
+            const response = await fetch(`${appUrl}/index.php?_route=plugin/initiateRechargeTokens&type=initiateRechargeTokens`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

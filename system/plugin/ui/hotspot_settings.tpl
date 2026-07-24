@@ -149,16 +149,9 @@ body {
                 <div class="form-group">
                     <label class="form-label">Ad Message</label>
                     <input type="text" class="form-control" name="ad_message"
-                        placeholder="e.g. Unlimited browsing from just Ksh 30 — buy today!"
+                        placeholder="e.g. Unlimited browsing from just Ksh 30!"
                         maxlength="200" required>
                 </div>
-
-                <div class="form-group">
-                    <label class="form-label">Link URL <small class="text-muted">(optional)</small></label>
-                    <input type="text" class="form-control" name="ad_link"
-                        placeholder="https://…">
-                </div>
-
                 <div class="form-group">
                     <label class="form-label">Status</label>
                     <select class="form-control" name="ad_status">
@@ -194,7 +187,7 @@ body {
                             {if $ad.link}
                                 <a href="{$ad.link}" target="_blank">{$ad.link}</a>
                             {else}
-                                <span class="text-muted">—</span>
+                                <span class="text-muted">ï¿½</span>
                             {/if}
                         </td>
                         <td>

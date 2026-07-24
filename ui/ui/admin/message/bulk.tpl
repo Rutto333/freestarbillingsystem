@@ -13,7 +13,7 @@
         <!-- Bulk Message Panel -->
         <div class="panel panel-primary panel-hovered panel-stacked mb30 {if $page>0 && $totalCustomers >0}hidden{/if}">
             <div class="panel-heading">{Lang::T('Send Bulk Message')}</div>
-            
+
             <div class="panel-body">
 
                 <!-- Bulk Message Form -->
@@ -66,10 +66,12 @@
                     <div class="form-group">
                         <label class="col-md-2 control-label">{Lang::T('Send Via')}</label>
                         <div class="col-md-6">
-                            <select class="form-control select2" name="via" id="via">   
+                            <select class="form-control select2" name="via" id="via">
                                 <option value="sms" selected>{Lang::T('via SMS')}</option>
-                                <option value="wa">{Lang::T('Via WhatsApp')}</option>
-                                <option value="both">{Lang::T('Via WhatsApp and SMS')}</option>                             
+                                {if !$system_notification_enabled}
+                                    <option value="wa">{Lang::T('Via WhatsApp')}</option>
+                                    <option value="both">{Lang::T('Via WhatsApp and SMS')}</option>
+                                {/if}
                             </select>
                         </div>
                     </div>
