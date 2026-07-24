@@ -235,11 +235,13 @@ switch ($action) {
             $_POST['man_fields_custom'] = isset($_POST['man_fields_custom']) ? 'yes' : 'no';
             $enable_session_timeout = isset($_POST['enable_session_timeout']) ? 1 : 0;
             $_POST['enable_session_timeout'] = $enable_session_timeout;
+
             $_POST['notification_reminder_1day'] = isset($_POST['notification_reminder_1day']) ? 'yes' : 'no';
             $_POST['notification_reminder_3days'] = isset($_POST['notification_reminder_3days']) ? 'yes' : 'no';
             $_POST['notification_reminder_7days'] = isset($_POST['notification_reminder_7days']) ? 'yes' : 'no';
+            $_POST['use_system_notification'] = (isset($_POST['use_system_notification']) && $_POST['use_system_notification'] == 'yes') ? 'yes' : 'no';
 
-            // hide dashboard
+                        // hide dashboard
             $_POST['hide_mrc'] = _post('hide_mrc', 'no');
             $_POST['hide_tms'] = _post('hide_tms', 'no');
             $_POST['hide_al'] = _post('hide_al', 'no');

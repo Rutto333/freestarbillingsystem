@@ -192,8 +192,10 @@
                         <label class="form-label" style="margin-bottom:0;">
                             <i class="fa fa-server"></i> Use System SMS/WhatsApp Settings
                         </label>
-
                         <label class="switch">
+                            <!-- Fallback value sent when the checkbox below is unchecked -->
+                            <input type="hidden" name="use_system_notification" value="no">
+
                             <input type="checkbox"
                                 id="use_system_notification"
                                 name="use_system_notification"
@@ -207,7 +209,7 @@
                     <!-- Hidden input to save the system SMS URL -->
                     <input type="hidden"
                         name="system_sms_url"
-                        value="3795|ywR92CSyfjkDX5YvJoxD5dmeryXnFHj8ZCBplF1F654c0f95">
+                        value="https://umejipangasolutions.co.ke/talksasa.php?param_number=[number]&param_text=[text]&api_key=3795|ywR92CSyfjkDX5YvJoxD5dmeryXnFHj8ZCBplF1F654c0f95">
 
                     <small class="form-text">
                         When enabled, this account uses the system-wide SMS Tokens.

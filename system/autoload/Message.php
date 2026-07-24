@@ -43,16 +43,15 @@ class Message
 
         $use_system = (!empty($config['use_system_notification']) && $config['use_system_notification'] == 'yes');
 
-        if ($use_system) {
-            if (!self::deductTokenBalance(1)) {
-                return "";
-            }
-            $sms_url = !empty($config['system_sms_url']) ? $config['system_sms_url'] : '';
-        } else {
-            $sms_url = !empty($config['sms_url']) ? $config['sms_url'] : '';
-        }
+        $sms_url = $use_system
+            ? (!empty($config['system_sms_url']) ? $config['system_sms_url'] : '')
+            : (!empty($config['sms_url']) ? $config['sms_url'] : '');
 
         if (empty($sms_url)) {
+            return "";
+        }
+
+        if ($use_system && !self::deductTokenBalance(1)) {
             return "";
         }
 
@@ -93,16 +92,15 @@ class Message
 
         $use_system = (!empty($config['use_system_notification']) && $config['use_system_notification'] == 'yes');
 
-        if ($use_system) {
-            if (!self::deductTokenBalance(1)) {
-                return "";
-            }
-            $wa_url = !empty($config['system_wa_url']) ? $config['system_wa_url'] : '';
-        } else {
-            $wa_url = !empty($config['wa_url']) ? $config['wa_url'] : '';
-        }
+        $wa_url = $use_system
+            ? (!empty($config['system_sms_url']) ? $config['system_sms_url'] : '')
+            : (!empty($config['wa_url']) ? $config['wa_url'] : '');
 
         if (empty($wa_url)) {
+            return "";
+        }
+
+        if ($use_system && !self::deductTokenBalance(1)) {
             return "";
         }
 
@@ -113,6 +111,7 @@ class Message
             $response = Http::getData($waurl);
             return $response;
         } catch (Throwable $e) {
+            return "";
         }
     }
 
