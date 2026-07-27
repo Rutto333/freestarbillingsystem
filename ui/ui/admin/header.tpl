@@ -681,6 +681,11 @@
                             <span>{Lang::T('Message Token')}</span>
                         </a>
                     </li>
+                    <li {if $_routes[1] eq 'Message Notifications' }{/if}>
+                        <a href="{Text::url('settings/notifications-post')}">
+                            <span>{Lang::T('Message Notifications')}</span>
+                        </a>
+                    </li>
 
                     {$_MENU_MESSAGE}
 

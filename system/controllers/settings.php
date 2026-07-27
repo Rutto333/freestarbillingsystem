@@ -952,7 +952,7 @@ switch ($action) {
         $csrf_token = Csrf::generateAndStoreToken();
         $ui->assign('csrf_token', $csrf_token);
         $ui->assign('_default', json_decode(file_get_contents($UPLOAD_PATH . DIRECTORY_SEPARATOR . 'notifications.default.json'), true));
-        $ui->display('admin/settings/notifications.tpl');
+        $ui->display('admin/message/notifications.tpl');
         break;
     case 'notifications-post':
         if ($_app_stage == 'Demo') {

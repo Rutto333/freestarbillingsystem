@@ -180,16 +180,12 @@ function hotspot_settings()
                         $insertStmt = $conn->prepare("INSERT INTO tbl_appconfig (setting, value) VALUES ('router_name', :router_name)");
                         $insertStmt->execute(['router_name' => $routerName['name']]);
                     }
-                } else {
-                    throw new Exception("Router with the specified ID not found.");
-                }
-
-                echo "Router name processed successfully.";
-            } catch (Exception $e) {
-                // Handle errors
-                error_log("Error processing router name: " . $e->getMessage());
-                echo "Error: " . $e->getMessage();
-            }
+                    } else {
+                        throw new Exception("Router with the specified ID not found.");
+                    }
+                    } catch (Exception $e) {
+                        error_log("Error processing router name: " . $e->getMessage());
+                    }
 
 
 
@@ -302,6 +298,10 @@ function hotspot_settings()
     hotspot_ticker_ads();
     $ui->display('hotspot_settings.tpl');
 }
+
+
+
+
 
 function hotspot_ticker_ads()
 {

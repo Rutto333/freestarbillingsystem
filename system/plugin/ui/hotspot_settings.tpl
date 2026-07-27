@@ -137,6 +137,7 @@ body {
             </form>
         </div>
     </div>
+
     <!-- Ad Ticker Manager -->
     <div class="card-simple">
         <div class="header-simple">
@@ -187,7 +188,7 @@ body {
                             {if $ad.link}
                                 <a href="{$ad.link}" target="_blank">{$ad.link}</a>
                             {else}
-                                <span class="text-muted">�</span>
+                                <span class="text-muted">No link available</span>
                             {/if}
                         </td>
                         <td>
@@ -198,10 +199,12 @@ body {
                             {/if}
                         </td>
                         <td>
-                            <a href="?toggle_ad={$ad.id}" class="btn btn-sm btn-warning">
+                            <a href="{$_url}plugin/hotspot_settings&toggle_ad={$ad.id}"
+                            class="btn btn-sm btn-warning">
                                 <i class="fa fa-toggle-on"></i>
                             </a>
-                            <a href="?delete_ad={$ad.id}"
+
+                            <a href="{$_url}plugin/hotspot_settings&delete_ad={$ad.id}"
                             class="btn btn-sm btn-danger"
                             onclick="return confirm('Delete this ad?')">
                                 <i class="fa fa-trash"></i>
