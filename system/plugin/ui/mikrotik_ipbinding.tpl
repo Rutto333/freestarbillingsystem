@@ -49,6 +49,8 @@ body { background: #f9fafb; }
   <form method="post" action="{$_url}plugin/mikrotik_ipbinding_add">
     <input type="hidden" name="router" value="{$router}">
 
+
+
     <div class="row">
       <!-- Left Column -->
       <div class="col-md-6">
