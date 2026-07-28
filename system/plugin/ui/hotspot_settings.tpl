@@ -221,8 +221,6 @@ body {
         </div>
     </div>
 
-
-
     <!-- Usage Instructions -->
     <div class="card-simple">
         <div class="header-simple">
