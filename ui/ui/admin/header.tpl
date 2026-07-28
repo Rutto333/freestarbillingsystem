@@ -538,7 +538,77 @@
             margin-bottom: 2px;
         }
 
-        .sidebar-menu .menu-header {
+        /* ===== Accordion menu group styles ===== */
+        .menu-group {
+            margin-bottom: 2px;
+        }
+
+        .menu-group-toggle {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 15px 12px 15px;
+            font-size: 11px;
+            color: #93c5fd;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 1px solid rgba(96, 165, 250, 0.1);
+            margin-bottom: 0;
+            cursor: pointer;
+            user-select: none;
+            transition: background 0.2s ease, color 0.2s ease;
+        }
+
+        .menu-group-toggle:hover {
+            background: rgba(96, 165, 250, 0.12);
+            color: #FFFFFF;
+        }
+
+        .menu-group-toggle .menu-group-label {
+            display: flex;
+            align-items: center;
+        }
+
+        .menu-group-toggle .menu-group-label i.fa,
+        .menu-group-toggle .menu-group-label i.ion {
+            margin-right: 6px;
+        }
+
+        .menu-group-caret {
+            font-size: 11px;
+            color: #93c5fd;
+            transition: transform 0.25s ease;
+        }
+
+        .menu-group.open > .menu-group-toggle .menu-group-caret {
+            transform: rotate(90deg);
+        }
+
+        .menu-group.open > .menu-group-toggle {
+            background: rgba(96, 165, 250, 0.12);
+            color: #FFFFFF;
+        }
+
+        .menu-group-items {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+
+        .menu-group.open > .menu-group-items {
+            max-height: 1000px;
+        }
+
+        .menu-group-items li a {
+            padding-left: 15px;
+        }
+
+        /* Dashboard (single, non-collapsible) link keeps original header style */
+        .menu-header {
             padding: 12px 15px 8px 15px;
             font-size: 11px;
             color: #93c5fd;
@@ -561,6 +631,11 @@
             background: #3b82f6 !important; /* Light blue background */
             color: #FFFFFF !important; /* White text color */
             text-decoration: none;
+        }
+
+        .sidebar-menu li.active > a {
+            background: #3b82f6;
+            color: #FFFFFF;
         }
     </style>
 
@@ -589,171 +664,199 @@
         <aside class="main-sidebar">
             <section class="sidebar" style="display: flex; flex-direction: column; height: 80vh;">
                 <ul class="sidebar-menu" style="flex: 1; overflow-y: auto;">
-                    <!-- Dashboard -->
+
+                    <!-- Dashboard (single item, no accordion needed) -->
                     <li class="menu-header">
-                        <i class="fa fa-dashboard"></i>DASHBOARD
+                        <i class="fa fa-dashboard"></i> DASHBOARD
                     </li>
-                    <li {if $_system_menu eq 'dashboard' } {/if}>
+                    <li {if $_system_menu eq 'dashboard'}class="active"{/if}>
                         <a href="{Text::url('dashboard')}">
                             <span>{Lang::T('Home')}</span>
                         </a>
                     </li>
                     {$_MENU_AFTER_DASHBOARD}
 
-                    <!-- Customer Section - Flattened -->
-                    <li class="menu-header">
-                        <i class="fa fa-users"></i> SERVICES
-                    </li>
-                    <li {if $_routes[1] eq 'list' }{/if}>
-                        <a href="{Text::url('plan/list')}">
-                            <span>{Lang::T('Active Users')}</span>
-                        </a>
-                    </li>
-                    <li {if $_system_menu eq 'customers' } {/if}>
-                        <a href="{Text::url('customers')}">
-                            <span>{Lang::T('Users')}</span>
-                        </a>
-                    </li>
-                    <li {if $_routes[1] eq 'recharge' }{/if}>
-                        <a href="{Text::url('plan/recharge')}">
-                            <span>{Lang::T('Recharge User')}</span>
-                        </a>
+                    <!-- SERVICES accordion group -->
+                    <li class="menu-group {if $_routes[1] eq 'list' or $_system_menu eq 'customers' or $_routes[1] eq 'recharge'}open{/if}" data-group="services">
+                        <div class="menu-group-toggle">
+                            <span class="menu-group-label"><i class="fa fa-users"></i> SERVICES</span>
+                            <i class="fa fa-angle-right menu-group-caret"></i>
+                        </div>
+                        <ul class="menu-group-items">
+                            <li {if $_routes[1] eq 'list'}class="active"{/if}>
+                                <a href="{Text::url('plan/list')}">
+                                    <span>{Lang::T('Active Users')}</span>
+                                </a>
+                            </li>
+                            <li {if $_system_menu eq 'customers'}class="active"{/if}>
+                                <a href="{Text::url('customers')}">
+                                    <span>{Lang::T('Users')}</span>
+                                </a>
+                            </li>
+                            <li {if $_routes[1] eq 'recharge'}class="active"{/if}>
+                                <a href="{Text::url('plan/recharge')}">
+                                    <span>{Lang::T('Recharge User')}</span>
+                                </a>
+                            </li>
+                        </ul>
                     </li>
 
                     {$_MENU_AFTER_CUSTOMERS}
 
-                    <!-- Services Section - Flattened -->
+                    <!-- PLANS accordion group -->
                     {if !in_array($_admin['user_type'],['Report'])}
-                        <li class="menu-header">
-                            <i class="fa fa-cogs"></i> PLANS
+                        <li class="menu-group {if $_routes[1] eq 'list' or $_routes[1] eq 'hotspot' or $_routes[1] eq 'pppoe' or $_routes[1] eq 'voucher'}open{/if}" data-group="plans">
+                            <div class="menu-group-toggle">
+                                <span class="menu-group-label"><i class="fa fa-cogs"></i> PLANS</span>
+                                <i class="fa fa-angle-right menu-group-caret"></i>
+                            </div>
+                            <ul class="menu-group-items">
+                                <li {if $_routes[1] eq 'list'}class="active"{/if}>
+                                    <a href="{Text::url('bandwidth/list')}">
+                                        <span>Bandwidth</span>
+                                    </a>
+                                </li>
+                                <li {if $_routes[1] eq 'hotspot'}class="active"{/if}>
+                                    <a href="{Text::url('services/hotspot')}">
+                                        <span>Hotspot</span>
+                                    </a>
+                                </li>
+                                <li {if $_routes[1] eq 'pppoe'}class="active"{/if}>
+                                    <a href="{Text::url('services/pppoe')}">
+                                        <span>PPPOE</span>
+                                    </a>
+                                </li>
+                                {if $_c['disable_voucher'] != 'yes'}
+                                    <li {if $_routes[1] eq 'voucher'}class="active"{/if}>
+                                        <a href="{Text::url('plan/voucher')}">
+                                            <span>{Lang::T('Vouchers')}</span>
+                                        </a>
+                                    </li>
+                                {/if}
+                                {$_MENU_SERVICES}
+                            </ul>
                         </li>
-
-                        <li {if $_routes[1] eq 'list' } {/if}>
-                            <a href="{Text::url('bandwidth/list')}">
-                                <span>Bandwidth</span>
-                            </a>
-                        </li>
-
-                        <li {if $_routes[1] eq 'hotspot' } {/if}>
-                            <a href="{Text::url('services/hotspot')}">
-                                <span>Hotspot</span>
-                            </a>
-                        </li>
-
-                        <li {if $_routes[1] eq 'pppoe' } {/if}>
-                            <a href="{Text::url('services/pppoe')}">
-                                <span>PPPOE</span>
-                            </a>
-                        </li>
-                        {if $_c['disable_voucher'] != 'yes'}
-                            <li {if $_routes[1] eq 'voucher' } {/if}>
-                                <a href="{Text::url('plan/voucher')}">
-                                    <span>{Lang::T('Vouchers')}</span>
-                                </a>
-                            </li>
-                        {/if}
-                        {$_MENU_SERVICES}
                     {/if}
 
                     {$_MENU_AFTER_SERVICES}
 
-                    <!-- Send Message Section - Flattened -->
-                    <li class="menu-header">
-                        <i class="ion ion-android-chat"></i> COMMUNICATION
-                    </li>
-                    <li {if $_routes[1] eq 'send' } {/if}>
-                        <a href="{Text::url('message/send')}">
-                            <span>{Lang::T('Single User')}</span>
-                        </a>
-                    </li>
-                    <li {if $_routes[1] eq 'send_bulk' } {/if}>
-                        <a href="{Text::url('message/send_bulk')}">
-                            <span>{Lang::T('Many Users')}</span>
-                        </a>
-                    </li>
-                    <li {if $_routes[1] eq 'Announcement_Customer' }{/if}>
-                        <a href="{Text::url('pages/Announcement_Customer')}">
-                            <span>{Lang::T('Announcement')}</span>
-                        </a>
-                    </li>
-                    <li {if $_routes[1] eq 'Message Tokens' }{/if}>
-                        <a href="{Text::url('message_tokens/token')}">
-                            <span>{Lang::T('Message Token')}</span>
-                        </a>
-                    </li>
-                    <li {if $_routes[1] eq 'Message Notifications' }{/if}>
-                        <a href="{Text::url('settings/notifications-post')}">
-                            <span>{Lang::T('Message Notifications')}</span>
-                        </a>
-                    </li>
+                    <!-- COMMUNICATION accordion group -->
+                    <li class="menu-group {if $_routes[1] eq 'send' or $_routes[1] eq 'send_bulk' or $_routes[1] eq 'Announcement_Customer' or $_routes[1] eq 'Message Tokens' or $_routes[1] eq 'Message Notifications'}open{/if}" data-group="communication">
+                        <div class="menu-group-toggle">
+                            <span class="menu-group-label"><i class="ion ion-android-chat"></i> COMMUNICATION</span>
+                            <i class="fa fa-angle-right menu-group-caret"></i>
+                        </div>
+                        <ul class="menu-group-items">
+                            <li {if $_routes[1] eq 'send'}class="active"{/if}>
+                                <a href="{Text::url('message/send')}">
+                                    <span>{Lang::T('Single User')}</span>
+                                </a>
+                            </li>
+                            <li {if $_routes[1] eq 'send_bulk'}class="active"{/if}>
+                                <a href="{Text::url('message/send_bulk')}">
+                                    <span>{Lang::T('Many Users')}</span>
+                                </a>
+                            </li>
+                            <li {if $_routes[1] eq 'Announcement_Customer'}class="active"{/if}>
+                                <a href="{Text::url('pages/Announcement_Customer')}">
+                                    <span>{Lang::T('Announcement')}</span>
+                                </a>
+                            </li>
+                            <li {if $_routes[1] eq 'Message Tokens'}class="active"{/if}>
+                                <a href="{Text::url('message_tokens/token')}">
+                                    <span>{Lang::T('Message Token')}</span>
+                                </a>
+                            </li>
+                            <li {if $_routes[1] eq 'Message Notifications'}class="active"{/if}>
+                                <a href="{Text::url('settings/notifications-post')}">
+                                    <span>{Lang::T('Message Notifications')}</span>
+                                </a>
+                            </li>
 
-                    {$_MENU_MESSAGE}
+                            {$_MENU_MESSAGE}
+                        </ul>
+                    </li>
 
                     {$_MENU_AFTER_MESSAGE}
                     {$_MENU_AFTER_PLANS}
 
-                    <!-- Reports Section - Flattened -->
+                    <!-- REPORTS accordion group -->
                     {if in_array($_admin['user_type'],['SuperAdmin','Admin', 'Report'])}
-                        <li class="menu-header">
-                            <i class="fa fa-bar-chart"></i> REPORTS
+                        <li class="menu-group {if $_routes[1] eq 'reports' or $_routes[1] eq 'activation'}open{/if}" data-group="reports">
+                            <div class="menu-group-toggle">
+                                <span class="menu-group-label"><i class="fa fa-bar-chart"></i> REPORTS</span>
+                                <i class="fa fa-angle-right menu-group-caret"></i>
+                            </div>
+                            <ul class="menu-group-items">
+                                <li {if $_routes[1] eq 'reports'}class="active"{/if}>
+                                    <a href="{Text::url('reports')}">
+                                        <span>{Lang::T('Purchase Report')}</span>
+                                    </a>
+                                </li>
+                                <li {if $_routes[1] eq 'activation'}class="active"{/if}>
+                                    <a href="{Text::url('reports/activation')}">
+                                        <span>{Lang::T('Activation Report')}</span>
+                                    </a>
+                                </li>
+                                {$_MENU_REPORTS}
+                            </ul>
                         </li>
-                        <li {if $_routes[1] eq 'reports' }{/if}>
-                            <a href="{Text::url('reports')}">
-                                <span>{Lang::T('Purchase Report')}</span>
-                            </a>
-                        </li>
-                        <li {if $_routes[1] eq 'activation' } {/if}>
-                            <a href="{Text::url('reports/activation')}">
-                                <span>{Lang::T('Activation Report')}</span>
-                            </a>
-                        </li>
-                        {$_MENU_REPORTS}
                     {/if}
 
                     {$_MENU_AFTER_REPORTS}
                     {$_MENU_AFTER_MESSAGE}
 
-                    <!-- Network Section - Flattened -->
+                    <!-- NETWORK accordion group -->
                     {if in_array($_admin['user_type'],['SuperAdmin','Admin'])}
-                        <li class="menu-header">
-                            <i class="fa fa-sitemap"></i> NETWORK
+                        <li class="menu-group {if ($_routes[0] eq 'routers' and $_routes[1] eq '') or ($_routes[0] eq 'pool' and $_routes[1] eq 'list')}open{/if}" data-group="network">
+                            <div class="menu-group-toggle">
+                                <span class="menu-group-label"><i class="fa fa-sitemap"></i> NETWORK</span>
+                                <i class="fa fa-angle-right menu-group-caret"></i>
+                            </div>
+                            <ul class="menu-group-items">
+                                <li {if $_routes[0] eq 'routers' and $_routes[1] eq ''}class="active"{/if}>
+                                    <a href="{Text::url('routers')}">
+                                        <span>Routers</span>
+                                    </a>
+                                </li>
+                                <li {if $_routes[0] eq 'pool' and $_routes[1] eq 'list'}class="active"{/if}>
+                                    <a href="{Text::url('pool/list')}">
+                                        <span>PPPoE Pool</span>
+                                    </a>
+                                </li>
+                                {$_MENU_NETWORK}
+                            </ul>
                         </li>
-                        <li {if $_routes[0] eq 'routers' and $_routes[1] eq '' } {/if}>
-                            <a href="{Text::url('routers')}">
-                                <span>Routers</span>
-                            </a>
-                        </li>
-                        <li {if $_routes[0] eq 'pool' and $_routes[1] eq 'list' } {/if}>
-                            <a href="{Text::url('pool/list')}">
-                                <span>PPPoE Pool</span>
-                            </a>
-                        </li>
-                        {$_MENU_NETWORK}
                     {/if}
 
                     {$_MENU_AFTER_NETWORKS}
                     {$_MENU_AFTER_PAGES}
                     {$_MENU_AFTER_LOGS}
 
-                    <!-- Settings Section - Flattened -->
-                    <li class="menu-header">
-                        <i class="fa fa-gear"></i> SETTINGS
+                    <!-- SETTINGS accordion group -->
+                    <li class="menu-group {if $_routes[1] eq 'app' or $_system_menu eq 'paymentgateway'}open{/if}" data-group="settings">
+                        <div class="menu-group-toggle">
+                            <span class="menu-group-label"><i class="fa fa-gear"></i> SETTINGS</span>
+                            <i class="fa fa-angle-right menu-group-caret"></i>
+                        </div>
+                        <ul class="menu-group-items">
+                            {if in_array($_admin['user_type'],['SuperAdmin','Admin'])}
+                                <li {if $_routes[1] eq 'app'}class="active"{/if}>
+                                    <a href="{Text::url('settings/app')}">
+                                        <span>{Lang::T('General Settings')}</span>
+                                    </a>
+                                </li>
+                            {/if}
+                            {if in_array($_admin['user_type'],['SuperAdmin','Admin'])}
+                                <li {if $_system_menu eq 'paymentgateway'}class="active"{/if}>
+                                    <a href="{Text::url('paymentgateway')}">
+                                        <span>{Lang::T('Payment Gateway')}</span>
+                                    </a>
+                                </li>
+                                {$_MENU_SETTINGS}
+                            {/if}
+                        </ul>
                     </li>
-                    {if in_array($_admin['user_type'],['SuperAdmin','Admin'])}
-                        <li {if $_routes[1] eq 'app' } {/if}>
-                            <a href="{Text::url('settings/app')}">
-                                <span>{Lang::T('General Settings')}</span>
-                            </a>
-                        </li>
-                    {/if}
-                    {if in_array($_admin['user_type'],['SuperAdmin','Admin'])}
-                        <li {if $_system_menu eq 'paymentgateway' } {/if}>
-                            <a href="{Text::url('paymentgateway')}">
-                                <span>{Lang::T('Payment Gateway')}</span>
-                            </a>
-                        </li>
-                        {$_MENU_SETTINGS}
-                    {/if}
                 </ul>
 
                 {if in_array($_admin['user_type'],['SuperAdmin','Admin','Agent'])}
@@ -778,13 +881,13 @@
                             <div class="user-body" style="padding: 10px;">
                                 <div class="row" style="display: flex; justify-content: space-between; text-align: center;">
                                     <div style="flex: 1; border-right: 1px solid #e5e5e5;">
-                                        <a href="{Text::url('settings/change-password')}" style="display: block; padding: 6px; color: #555; text-decoration: none; font-size: 13px;">
+                                        <a href="{Text::url('settings/change-password')}" style="display: block; padding: 6px; color: #1A73E8; text-decoration: none; font-size: 13px;">
                                             <i class="ion ion-settings"></i><br>
-                                            <span style="font-size: 12px;">{Lang::T('Password')}</span>
+                                            <span style="font-size: 12px;">{Lang::T('Change Password')}</span>
                                         </a>
                                     </div>
                                     <div style="flex: 1;">
-                                        <a href="{Text::url('settings/users-view/', $_admin['id'])}" style="display: block; padding: 6px; color: #555; text-decoration: none; font-size: 13px;">
+                                        <a href="{Text::url('settings/users-view/', $_admin['id'])}" style="display: block; padding: 6px; color: #1A73E8; text-decoration: none; font-size: 13px;">
                                             <i class="ion ion-person"></i><br>
                                             <span style="font-size: 12px;">{Lang::T('Account')}</span>
                                         </a>
@@ -913,6 +1016,29 @@
                     });
                 }
             }
+
+            // ===== Sidebar accordion menu: only one section open at a time =====
+            const menuGroups = document.querySelectorAll('.sidebar-menu .menu-group');
+
+            menuGroups.forEach(function(group) {
+                const toggle = group.querySelector('.menu-group-toggle');
+                if (!toggle) return;
+
+                toggle.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const isOpen = group.classList.contains('open');
+
+                    // Close every group first
+                    menuGroups.forEach(function(g) {
+                        g.classList.remove('open');
+                    });
+
+                    // Re-open the clicked one only if it wasn't already open
+                    if (!isOpen) {
+                        group.classList.add('open');
+                    }
+                });
+            });
         });
     </script>
 

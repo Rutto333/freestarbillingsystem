@@ -5,7 +5,7 @@ use PEAR2\Net\RouterOS\Client;
 use PEAR2\Net\RouterOS\Request;
 
 
-register_menu(" MikroTik Monitor", true, "mikrotik_monitor_ui", 'AFTER_NETWORKS');
+register_menu("Online Users", true, "mikrotik_monitor_ui", 'AFTER_NETWORKS',  'ion ion-wifi', "New", "green");
 
 function mikrotik_monitor_ui()
 {
