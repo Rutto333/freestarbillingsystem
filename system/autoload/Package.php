@@ -18,7 +18,7 @@ class Package
      * @param array $pgids payment gateway ids
      * @return boolean
      */
-    public static function rechargeUser($id_customer, $router_name, $plan_id, $gateway, $channel, $note = '')
+    public static function rechargeUser($id_customer, $router_name, $plan_id, $gateway, $channel, $note)
     {
         global $config, $admin, $c, $p, $b, $t, $d, $zero, $trx, $_app_stage, $isChangePlan;
         $date_only = date("Y-m-d");
@@ -257,90 +257,105 @@ class Package
             }
             //}
 
-            // if contains 'mikrotik', 'hotspot', 'pppoe', 'radius' then recharge it
-            if (Validator::containsKeyword($p['device'])) {
-                $b->customer_id = $id_customer;
-                $b->username = $c['username'];
-                $b->plan_id = $plan_id;
-                $b->namebp = $p['name_plan'];
-                $b->recharged_on = $date_only;
-                $b->recharged_time = $time_only;
-                $b->expiration = $date_exp;
-                $b->time = $time;
-                $b->status = "on";
-                $b->method = "$gateway - $channel";
-                $b->routers = $router_name;
-                $b->type = $p['type'];
-                if ($admin) {
-                    $b->admin_id = ($admin['id']) ? $admin['id'] : '0';
-                } else {
-                    $b->admin_id = '0';
-                }
-                $b->save();
-            }
+            $exists = ORM::for_table("tbl_transactions")
+                ->where("note", $note)
+                ->count();
 
-            // insert table transactions
-            $t = ORM::for_table('tbl_transactions')->create();
-            $t->invoice = $inv = "INV-" . Package::_raid();
-            $t->username = $c['username'];
-            $t->user_id = $id_customer;
-            $t->plan_name = $p['name_plan'];
-            if ($gateway == 'Voucher' && User::isUserVoucher($channel)) {
-                //its already paid
-                $t->price = 0;
-            } else {
-                if ($p['validity_unit'] == 'Period') {
-                    // Postpaid price from field
-                    $add_inv = User::getAttribute("Invoice", $id_customer);
-                    if (empty($add_inv) or $add_inv == 0) {
-                        $t->price = $p['price'] + $add_cost;
+            if ($exists == 0) {
+                // No Duplicate transaction
+
+                // if contains 'mikrotik', 'hotspot', 'pppoe', 'radius' then recharge it
+                if (Validator::containsKeyword($p['device'])) {
+                    $b->customer_id = $id_customer;
+                    $b->username = $c['username'];
+                    $b->plan_id = $plan_id;
+                    $b->namebp = $p['name_plan'];
+                    $b->recharged_on = $date_only;
+                    $b->recharged_time = $time_only;
+                    $b->expiration = $date_exp;
+                    $b->time = $time;
+                    $b->status = "on";
+                    $b->method = "$gateway - $channel";
+                    $b->routers = $router_name;
+                    $b->type = $p['type'];
+                    if ($admin) {
+                        $b->admin_id = ($admin['id']) ? $admin['id'] : '0';
                     } else {
-                        $t->price = $add_inv + $add_cost;
+                        $b->admin_id = '0';
                     }
-                } else {
-                    $t->price = $p['price'] + $add_cost;
+                    $b->save();
                 }
-            }
-            $t->recharged_on = $date_only;
-            $t->recharged_time = $time_only;
-            $t->expiration = $date_exp;
-            $t->time = $time;
-            $t->method = "$gateway - $channel";
-            $t->routers = $router_name;
-            $t->note = $note;
-            $t->type = $p['type'];
-            if ($admin) {
-                $t->admin_id = ($admin['id']) ? $admin['id'] : '0';
+
+                // insert table transactions
+                $t = ORM::for_table('tbl_transactions')->create();
+                $t->invoice = $inv = "INV-" . Package::_raid();
+                $t->username = $c['username'];
+                $t->user_id = $id_customer;
+                $t->plan_name = $p['name_plan'];
+                if ($gateway == 'Voucher' && User::isUserVoucher($channel)) {
+                    //its already paid
+                    $t->price = 0;
+                } else {
+                    if ($p['validity_unit'] == 'Period') {
+                        // Postpaid price from field
+                        $add_inv = User::getAttribute("Invoice", $id_customer);
+                        if (empty($add_inv) or $add_inv == 0) {
+                            $t->price = $p['price'] + $add_cost;
+                        } else {
+                            $t->price = $add_inv + $add_cost;
+                        }
+                    } else {
+                        $t->price = $p['price'] + $add_cost;
+                    }
+                }
+                $t->recharged_on = $date_only;
+                $t->recharged_time = $time_only;
+                $t->expiration = $date_exp;
+                $t->time = $time;
+                $t->method = "$gateway - $channel";
+                $t->routers = $router_name;
+                $t->note = $note;
+                $t->type = $p['type'];
+                if ($admin) {
+                    $t->admin_id = ($admin['id']) ? $admin['id'] : '0';
+                } else {
+                    $t->admin_id = '0';
+                }
+                $t->save();
+
+                if ($p['validity_unit'] == 'Period') {
+                    // insert price to fields for invoice next month
+                    $fl = ORM::for_table('tbl_customers_fields')->where('field_name', 'Invoice')->where('customer_id', $c['id'])->find_one();
+                    if (!$fl) {
+                        $fl = ORM::for_table('tbl_customers_fields')->create();
+                        $fl->customer_id = $c['id'];
+                        $fl->field_name = 'Invoice';
+                        $fl->field_value = $p['price'];
+                        $fl->save();
+                    } else {
+                        $fl->customer_id = $c['id'];
+                        $fl->field_value = $p['price'];
+                        $fl->save();
+                    }
+                }
+
+                Message::sendTelegram("#u$c[username] $c[fullname] #recharge #$p[type] \n" . $p['name_plan'] .
+                    "\nRouter: " . $router_name .
+                    "\nGateway: " . $gateway .
+                    "\nChannel: " . $channel .
+                    "\nLast Expired: $lastExpired" .
+                    "\nNew Expired: " . Lang::dateAndTimeFormat($date_exp, $time) .
+                    "\nPrice: " . Lang::moneyFormat($p['price'] + $add_cost) .
+                    "\nNote:\n" . $note);
+
+
             } else {
-                $t->admin_id = '0';
-            }
-            $t->save();
-
-            if ($p['validity_unit'] == 'Period') {
-                // insert price to fields for invoice next month
-                $fl = ORM::for_table('tbl_customers_fields')->where('field_name', 'Invoice')->where('customer_id', $c['id'])->find_one();
-                if (!$fl) {
-                    $fl = ORM::for_table('tbl_customers_fields')->create();
-                    $fl->customer_id = $c['id'];
-                    $fl->field_name = 'Invoice';
-                    $fl->field_value = $p['price'];
-                    $fl->save();
-                } else {
-                    $fl->customer_id = $c['id'];
-                    $fl->field_value = $p['price'];
-                    $fl->save();
-                }
+                //  Duplicate Transaction
+                Return false;
             }
 
-            Message::sendTelegram("#u$c[username] $c[fullname] #recharge #$p[type] \n" . $p['name_plan'] .
-                "\nRouter: " . $router_name .
-                "\nGateway: " . $gateway .
-                "\nChannel: " . $channel .
-                "\nLast Expired: $lastExpired" .
-                "\nNew Expired: " . Lang::dateAndTimeFormat($date_exp, $time) .
-                "\nPrice: " . Lang::moneyFormat($p['price'] + $add_cost) .
-                "\nNote:\n" . $note);
         } else {
+
             // active plan not exists
             $dvc = Package::getDevice($p);
             if ($_app_stage != 'Demo') {
@@ -372,96 +387,113 @@ class Package
                 }
             }
 
-            // if contains 'mikrotik', 'hotspot', 'pppoe', 'radius' then recharge it
-            if (Validator::containsKeyword($p['device'])) {
-                $d = ORM::for_table('tbl_user_recharges')->create();
-                $d->customer_id = $id_customer;
-                $d->username = $c['username'];
-                $d->plan_id = $plan_id;
-                $d->namebp = $p['name_plan'];
-                $d->recharged_on = $date_only;
-                $d->recharged_time = $time_only;
-                $d->expiration = $date_exp;
-                $d->time = $time;
-                $d->status = "on";
-                $d->method = "$gateway - $channel";
-                $d->routers = $router_name;
-                $d->type = $p['type'];
-                if ($admin) {
-                    $d->admin_id = ($admin['id']) ? $admin['id'] : '0';
-                } else {
-                    $d->admin_id = '0';
-                }
-                $d->save();
-            }
 
-            // insert table transactions
-            $t = ORM::for_table('tbl_transactions')->create();
-            $t->invoice = $inv = "INV-" . Package::_raid();
-            $t->username = $c['username'];
-            $t->user_id = $id_customer;
-            $t->plan_name = $p['name_plan'];
-            if ($gateway == 'Voucher' && User::isUserVoucher($channel)) {
-                $t->price = 0;
-                // its already paid
-            } else {
-                if ($p['validity_unit'] == 'Period') {
-                    // Postpaid price always zero for first time
-                    $note = '';
-                    $bills = [];
-                    $t->price = 0;
-                } else {
-                    $t->price = $p['price'] + $add_cost;
-                }
-            }
-            $t->recharged_on = $date_only;
-            $t->recharged_time = $time_only;
-            $t->expiration = $date_exp;
-            $t->time = $time;
-            $t->method = "$gateway - $channel";
-            $t->note = $note;
-            $t->routers = $router_name;
-            if ($admin) {
-                $t->admin_id = ($admin['id']) ? $admin['id'] : '0';
-            } else {
-                $t->admin_id = '0';
-            }
-            $t->type = $p['type'];
-            $t->save();
 
-            if ($p['validity_unit'] == 'Period' && $p['price'] != 0) {
-                // insert price to fields for invoice next month
-                $fl = ORM::for_table('tbl_customers_fields')->where('field_name', 'Invoice')->where('customer_id', $c['id'])->find_one();
-                if (!$fl) {
-                    $fl = ORM::for_table('tbl_customers_fields')->create();
-                    $fl->customer_id = $c['id'];
-                    $fl->field_name = 'Invoice';
-                    // Calculating Price
-                    $sd = new DateTime("$date_only");
-                    $ed = new DateTime("$date_exp");
-                    $td = $ed->diff($sd);
-                    $fd = $td->format("%a");
-                    $gi = ($p['price'] / (30 * $p['validity'])) * $fd;
-                    if ($gi > $p['price']) {
-                        $fl->field_value = $p['price'];
+            $exists = ORM::for_table("tbl_transactions")
+                ->where("note", $note)
+                ->count();
+
+            if ($exists == 0) {
+                // Duplicate transaction
+
+                // if contains 'mikrotik', 'hotspot', 'pppoe', 'radius' then recharge it
+                if (Validator::containsKeyword($p['device'])) {
+                    $d = ORM::for_table('tbl_user_recharges')->create();
+                    $d->customer_id = $id_customer;
+                    $d->username = $c['username'];
+                    $d->plan_id = $plan_id;
+                    $d->namebp = $p['name_plan'];
+                    $d->recharged_on = $date_only;
+                    $d->recharged_time = $time_only;
+                    $d->expiration = $date_exp;
+                    $d->time = $time;
+                    $d->status = "on";
+                    $d->method = "$gateway - $channel";
+                    $d->routers = $router_name;
+                    $d->type = $p['type'];
+                    if ($admin) {
+                        $d->admin_id = ($admin['id']) ? $admin['id'] : '0';
                     } else {
-                        $fl->field_value = $gi;
+                        $d->admin_id = '0';
                     }
-                    $fl->save();
-                } else {
-                    $fl->customer_id = $c['id'];
-                    $fl->field_value = $p['price'];
-                    $fl->save();
+                    $d->save();
                 }
+
+                // insert table transactions
+                $t = ORM::for_table('tbl_transactions')->create();
+                $t->invoice = $inv = "INV-" . Package::_raid();
+                $t->username = $c['username'];
+                $t->user_id = $id_customer;
+                $t->plan_name = $p['name_plan'];
+                if ($gateway == 'Voucher' && User::isUserVoucher($channel)) {
+                    $t->price = 0;
+                    // its already paid
+                } else {
+                    if ($p['validity_unit'] == 'Period') {
+                        // Postpaid price always zero for first time
+                        $note = '';
+                        $bills = [];
+                        $t->price = 0;
+                    } else {
+                        $t->price = $p['price'] + $add_cost;
+                    }
+                }
+                $t->recharged_on = $date_only;
+                $t->recharged_time = $time_only;
+                $t->expiration = $date_exp;
+                $t->time = $time;
+                $t->method = "$gateway - $channel";
+                $t->note = $note;
+                $t->routers = $router_name;
+                if ($admin) {
+                    $t->admin_id = ($admin['id']) ? $admin['id'] : '0';
+                } else {
+                    $t->admin_id = '0';
+                }
+                $t->type = $p['type'];
+                $t->save();
+
+                if ($p['validity_unit'] == 'Period' && $p['price'] != 0) {
+                    // insert price to fields for invoice next month
+                    $fl = ORM::for_table('tbl_customers_fields')->where('field_name', 'Invoice')->where('customer_id', $c['id'])->find_one();
+                    if (!$fl) {
+                        $fl = ORM::for_table('tbl_customers_fields')->create();
+                        $fl->customer_id = $c['id'];
+                        $fl->field_name = 'Invoice';
+                        // Calculating Price
+                        $sd = new DateTime("$date_only");
+                        $ed = new DateTime("$date_exp");
+                        $td = $ed->diff($sd);
+                        $fd = $td->format("%a");
+                        $gi = ($p['price'] / (30 * $p['validity'])) * $fd;
+                        if ($gi > $p['price']) {
+                            $fl->field_value = $p['price'];
+                        } else {
+                            $fl->field_value = $gi;
+                        }
+                        $fl->save();
+                    } else {
+                        $fl->customer_id = $c['id'];
+                        $fl->field_value = $p['price'];
+                        $fl->save();
+                    }
+                }
+
+                Message::sendTelegram("#u$c[username] $c[fullname] #buy #$p[type] \n" . $p['name_plan'] .
+                    "\nRouter: " . $router_name .
+                    "\nGateway: " . $gateway .
+                    "\nChannel: " . $channel .
+                    "\nExpired: " . Lang::dateAndTimeFormat($date_exp, $time) .
+                    "\nPrice: " . Lang::moneyFormat($p['price'] + $add_cost) .
+                    "\nNote:\n" . $note);
+
+            } else {
+                // No duplicate
+
+                Return false;
             }
 
-            Message::sendTelegram("#u$c[username] $c[fullname] #buy #$p[type] \n" . $p['name_plan'] .
-                "\nRouter: " . $router_name .
-                "\nGateway: " . $gateway .
-                "\nChannel: " . $channel .
-                "\nExpired: " . Lang::dateAndTimeFormat($date_exp, $time) .
-                "\nPrice: " . Lang::moneyFormat($p['price'] + $add_cost) .
-                "\nNote:\n" . $note);
+
         }
 
         if (is_array($bills) && count($bills) > 0) {

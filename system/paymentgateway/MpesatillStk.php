@@ -151,26 +151,11 @@ function MpesatillStk_payment_notification()
         $date = date('Y-m-d');
         $time = date('H:i:s');
 
-        if (!Package::rechargeUser($UserId, $PaymentGatewayRecord->routers, $PaymentGatewayRecord->plan_id, $PaymentGatewayRecord->gateway, 'STK-Push')) {
+        if (!Package::rechargeUser($UserId, $PaymentGatewayRecord->routers, $PaymentGatewayRecord->plan_id, $PaymentGatewayRecord->gateway, 'STK-Push', $mpesa_code )) {
             $PaymentGatewayRecord->status = 2;
             $PaymentGatewayRecord->paid_date = $now;
             $PaymentGatewayRecord->gateway_trx_id = $mpesa_code;
             $PaymentGatewayRecord->save();
-
-            // Save transaction data to tbl_transactions
-            $transaction = ORM::for_table('tbl_transactions')->create();
-            $transaction->invoice = $mpesa_code;
-            $transaction->username = $PaymentGatewayRecord->username;
-            $transaction->plan_name = $PaymentGatewayRecord->plan_name;
-            $transaction->price = $amount_paid;
-            $transaction->recharged_on = $date;
-            $transaction->recharged_time = $time;
-            $transaction->expiration = $now;
-            $transaction->time = $now;
-            $transaction->method = $PaymentGatewayRecord->payment_method;
-            $transaction->routers = 0;
-            $transaction->Type = 'Balance';
-            $transaction->save();
         } else {
             // Update tbl_recharges if needed
             $PaymentGatewayRecord->status = 2;

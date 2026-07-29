@@ -239,14 +239,15 @@ switch ($action) {
                 $zero = 1;
                 $gateway = 'Recharge Zero';
             }
-            if (Package::rechargeUser($id_customer, $server, $planId, $gateway, $channel)) {
+            $note = 'NOTE-' . strtoupper(uniqid(mt_rand(10, 99)));
+            if (Package::rechargeUser($id_customer, $server, $planId, $gateway, $channel, $note)) {
                 if ($using == 'balance') {
                     Balance::min($cust['id'], $total_cost);
                 }
                 $in = ORM::for_table('tbl_transactions')->where('username', $cust['username'])->order_by_desc('id')->find_one();
                 Package::createInvoice($in);
                 App::setVoucher($svoucher, $cust['username']);
-                r2(getUrl('reports/activation'), 's', "Recharge Success");
+                $ui->display('admin/plan/invoice.tpl');
                 _log('[' . $admin['username'] . ']: ' . 'Recharge ' . $cust['username'] . ' [' . $in['plan_name'] . '][' . Lang::moneyFormat($in['price']) . ']', $admin['user_type'], $admin['id']);
             } else {
                 r2(getUrl('plan/recharge'), 'e', "Failed to recharge account");

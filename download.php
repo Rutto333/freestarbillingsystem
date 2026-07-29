@@ -51,7 +51,7 @@ $htmlContent = <<<HTML
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <meta name="description" content="{$description}">
-    <title>{$hotspotTitle}</title>
+    <title>{$company}</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -77,7 +77,7 @@ $htmlContent = <<<HTML
     <div class="container mx-auto px-4 py-1">
         <div class="flex flex-col items-center justify-center text-center">
                 <div>
-                    <h1 class="text-2xl md:text-3xl font-bold tracking-tight">{$hotspotTitle}</h1>
+                    <h1 class="text-2xl md:text-3xl font-bold tracking-tight">{$company}</h1>
                 </div>
             <div class="flex items-center gap-2 bg-green-500 rounded-full px-4 py-1">
                 <div class="w-2 h-2 bg-white rounded-full animate-pulse"></div>
@@ -122,9 +122,9 @@ $htmlContent = <<<HTML
   ];
 
   function setTickerText(messages) {
-    const text = messages.join("   ");
-    spans.forEach(el => el.textContent = text);
-  }
+        const text = messages.join("   •   ");
+        spans.forEach(el => el.textContent = text);
+    }
 
   function startTicker() {
     if (animating) return;
@@ -146,7 +146,7 @@ $htmlContent = <<<HTML
 
     try {
     const response = await fetch(
-        'https://dev.umejipangasolutions.co.ke/index.php?_route=plugin/CreateHotspotuser&type=ticker_ads',
+        '{$appUrl}/index.php?_route=plugin/CreateHotspotuser&type=ticker_ads',
         {
             method: 'POST',
             headers: {
@@ -243,7 +243,7 @@ async function fetchPlans() {
                         \${isFree ? `
                         <div class='relative bg-gradient-to-r from-amber-400 to-yellow-500 text-white py-2'>
                             <span class='absolute -top-0 -right-0 bg-white text-amber-500 text-[9px] font-extrabold px-1.5 py-0.5 rounded-bl-lg tracking-widest uppercase shadow-sm border border-amber-200'>
-                                ? FREE
+                                 FREE
                             </span>
                             <h2 class='text-xs sm:text-sm font-bold text-center px-2'>\${plan.planname}</h2>
                         </div>
@@ -399,9 +399,9 @@ fetchPlans();
         </div>
         <div class="p-5 flex-1 flex flex-col">
 
-            <p class="text-sm text-gray-500 text-center mb-4">
-                Enter your voucher code to connect.
-            </p>
+                <label class="text-sm font-medium text-gray-700 mb-2 block">
+                    Enter Your Voucher Code
+                </label>
             <input
                 id="voucher_code_top"
                 name="voucher_code"
@@ -410,7 +410,7 @@ fetchPlans();
                 class="w-full rounded-lg border bg-gray-50 px-4 py-3 focus:ring-2 focus:ring-purple-500">
             <button
                 type="button"
-                onclick="redeemVoucher('{$routerId}','voucher_code_top')"
+                onclick="redeemVoucher('2','voucher_code_top')"
                 class="mt-4 w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 rounded-lg transition">
                 <i class="fas fa-ticket-alt mr-2"></i>
                 Redeem Voucher
@@ -431,7 +431,7 @@ fetchPlans();
                 <a href="sms:{$phone}" class="bg-yellow-600 hover:bg-yellow-700 rounded-full w-10 h-10 flex items-center justify-center transition-all duration-300">
                     <i class="fas fa-sms text-sm"></i></a>
             </div>
-            <p class="text-gray-400 text-sm">&copy; {$CompanyName}. Powered by UMS.</p>
+            <p class="text-gray-400 text-sm">&copy; {$company} . Powered by UMS.</p>
         </div>
     </div>
 </footer>
@@ -439,7 +439,7 @@ fetchPlans();
 <script>
 const formatPhoneNumber = (phone) => {
     phone = phone.replace(/^\+/, '').replace(/^0/, '254');
-    return phone.match(/^(7|1)/) ? `254${phone}` : phone;
+    return phone.match(/^(7|1)/) ? `254\${phone}` : phone;
 };
 const setCookie = (name, value, days = 7) => {
     const date = new Date();
@@ -447,8 +447,8 @@ const setCookie = (name, value, days = 7) => {
     document.cookie = `\${name}=\${value}; expires=\${date.toUTCString()}; path=/`;
 };
 const getCookie = (name) => {
-    const match = document.cookie.match(new RegExp(`(^| )${name}=([^;]+)`));
-    return match ? match[2] : null;
+    const match = document.cookie.match(new RegExp(`(?:^|; )\${name}=([^;]*)`));
+    return match ? decodeURIComponent(match[1]) : null;
 };
 const generateAccountNumber = (length = 10) => {
     const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
@@ -461,6 +461,12 @@ const generateAccountNumber = (length = 10) => {
 };
 function getAccountNumberFromCookie() {
     return getCookie('account_number');
+}
+function setUsernameCookie(username) {
+    if (username) setCookie('username', username);
+}
+function getUsernameFromCookie() {
+    return getCookie('username');
 }
 function showVoucherSection() {
     const voucherSection = document.getElementById('voucherSection');
@@ -510,6 +516,7 @@ function redeemVoucher(router_id, inputId = 'voucher_code_top') {
             });
             document.getElementById('usernameInput').value = data.username || accountNumber;
             document.getElementById('passwordInput').value = '1234';
+            setUsernameCookie(data.username || accountNumber);
             setTimeout(() => document.getElementById('submitBtn').click(), 2000);
         } else {
             Swal.fire('Voucher Failed', data?.message || 'An error occurred. Please try again.', 'error');
@@ -553,6 +560,7 @@ function redeemMpesa() {
             });
             document.getElementById('usernameInput').value = data.username;
             document.getElementById('passwordInput').value = '1234';
+            setUsernameCookie(data.username);
             setTimeout(() => document.getElementById('submitBtn').click(), 2000);
         } else {
             Swal.fire('M-Pesa Failed', data?.message || 'An error occurred. Please try again.', 'error');
@@ -587,7 +595,7 @@ async function handleFreeAccess(event, planId, routerId) {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                phone_number: '',   // empty � no phone needed for free plans
+                phone_number: '',   // empty, no phone needed for free plans
                 plan_id: planId,
                 router_id: routerId,
                 account_number: accountNumber
@@ -612,6 +620,7 @@ async function handleFreeAccess(event, planId, routerId) {
 
         document.getElementById('usernameInput').value = data.username || accountNumber;
         document.getElementById('passwordInput').value = '1234';
+        setUsernameCookie(data.username || accountNumber);
         setTimeout(() => document.getElementById('loginForm').submit(), 2000);
 
     } catch (error) {
@@ -696,6 +705,7 @@ function checkPaymentStatus(accountNumber) {
                     });
                     document.getElementById('usernameInput').value = data.username || accountNumber;
                     document.getElementById('passwordInput').value = '1234';
+                    setUsernameCookie(data.username || accountNumber);
                     setTimeout(() => document.getElementById('loginForm').submit(), 2000);
                 } else if (data.Status === 'danger') {
                     clearInterval(checkInterval);
@@ -710,9 +720,9 @@ function checkPaymentStatus(accountNumber) {
     }, 300000);
 }
 function autoLogin() {
-    let accountNumber = getAccountNumberFromCookie();
-    if (accountNumber) {
-        document.getElementById('usernameInput').value = accountNumber;
+    let username = getUsernameFromCookie() || getAccountNumberFromCookie();
+    if (username) {
+        document.getElementById('usernameInput').value = username;
         document.getElementById('passwordInput').value = '1234';
     }
 }
@@ -756,4 +766,3 @@ if (isset($_GET['download']) && $_GET['download'] == '1') {
 
 echo $htmlContent;
 ?>
-
