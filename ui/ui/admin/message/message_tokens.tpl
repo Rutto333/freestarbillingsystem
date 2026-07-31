@@ -217,7 +217,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     title: 'STK Push Sent!',
                     html: `
                         <p>STK Push sent successfully!.</p>
-                        <p>Refresh the page to see your updated token balance.</p>
+                        <p>After Payment, Refresh the page to see your updated token balance.</p>
                         <p style="margin-top: 10px; font-size: 13px; color: #6b7280;">
                             You will receive ${amount * 2} tokens after successful payment.
                         </p>
