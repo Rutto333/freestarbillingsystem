@@ -85,7 +85,7 @@
             <p class="balance-amount">{$tokenBalance|default:0}</p>
         </div>
     </div>
-    <p class="note">1 KES = 5 Tokens</p>
+    <p class="note">1 KES = 2 Tokens</p>
     <button type="button" class="btn-recharge" id="rechargeBtn">
         <i class="fa fa-plus-circle"></i> Recharge Tokens
     </button>
