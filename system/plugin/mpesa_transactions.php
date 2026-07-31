@@ -1,6 +1,6 @@
 <?php
 // Register the Mpesa Transactions menu
-register_menu("Mpesa Transactions", true, "mpesa_transactions", 'AFTER_REPORTS', ['Admin', 'SuperAdmin']);
+register_menu("Mpesa Transactions", true, "mpesa_transactions", 'AFTER_REPORTS', "ion ion-card");
 
 function mpesa_transactions()
 {

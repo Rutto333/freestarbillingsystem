@@ -549,7 +549,7 @@
             justify-content: space-between;
             padding: 12px 15px 12px 15px;
             font-size: 11px;
-            color: #93c5fd;
+            color: #ffffff;
             font-weight: 600;
             text-transform: uppercase;
             letter-spacing: 0.5px;
@@ -592,11 +592,12 @@
 
         .menu-group-items {
             list-style: none;
-            margin: 0;
+            margin: 0 0 0 4px;
             padding: 0;
             max-height: 0;
             overflow: hidden;
             transition: max-height 0.3s ease;
+            border-left: 4px solid #22c55e;
         }
 
         .menu-group.open > .menu-group-items {
@@ -606,6 +607,7 @@
         .menu-group-items li a {
             padding-left: 15px;
         }
+
 
         /* Dashboard (single, non-collapsible) link keeps original header style */
         .menu-header {

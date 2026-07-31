@@ -4,7 +4,7 @@
 use PEAR2\Net\RouterOS;
 use PEAR2\Net\RouterOS\Client;
 use PEAR2\Net\RouterOS\Request;
-register_menu("Mikrotik IP Binding", true, "ip_list_ui", 'AFTER_NETWORKS');
+register_menu("Mikrotik IP Binding", true, "ip_list_ui", 'AFTER_NETWORKS', "ion ion-link", "New", "green");
 
 
 function ip_list_ui() {
