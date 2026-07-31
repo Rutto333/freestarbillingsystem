@@ -155,7 +155,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 input.addEventListener('input', function() {
                     const amt = parseFloat(this.value) || 0;
-                    const tokens = amt * 5;
+                    const tokens = amt * 2;
                     tokenInfo.textContent = `You will receive ${tokens} tokens`;
                 });
             },
@@ -175,7 +175,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 <div style="text-align: left; padding: 10px;">
                     <p><strong>Phone Number:</strong> ${cleanPhoneNumber}</p>
                     <p><strong>Amount:</strong> KES ${amount}</p>
-                    <p><strong>Tokens:</strong> ${amount * 5}</p>
+                    <p><strong>Tokens:</strong> ${amount * 2}</p>
                 </div>
             `,
             icon: 'question',
@@ -199,7 +199,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
 
         try {
-            const response = await fetch(`${appUrl}/index.php?_route=plugin/initiateRechargeTokens&type=initiateRechargeTokens`, {
+            const response = await fetch(`${appUrl}/index.php?_route=plugin/CreateHotspotUser&type=recharge_tokens`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -216,9 +216,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 Swal.fire({
                     title: 'STK Push Sent!',
                     html: `
-                        <p>Please check your phone and enter your M-Pesa PIN to complete the payment.</p>
+                        <p>STK Push sent successfully!.</p>
+                        <p>Refresh the page to see your updated token balance.</p>
                         <p style="margin-top: 10px; font-size: 13px; color: #6b7280;">
-                            You will receive ${amount * 5} tokens after successful payment.
+                            You will receive ${amount * 2} tokens after successful payment.
                         </p>
                     `,
                     icon: 'success',

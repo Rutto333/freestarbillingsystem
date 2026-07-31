@@ -30,19 +30,6 @@ switch ($action) {
             $ui->display('admin/message/message_tokens.tpl');
             break;
 
-    case 'token/recharge':
-        header('Content-Type: application/json');
-
-        // Call your Daraja STK Push function
-        $stkResult = Mpesa::stkPush($admin['phonenumber'], 100); // Example: KES 100 for tokens
-
-        if ($stkResult['status'] == 'success') {
-            echo json_encode(['status' => 'success', 'message' => 'STK Push sent. Enter your M-Pesa PIN.']);
-        } else {
-            echo json_encode(['status' => 'error', 'message' => 'Failed to send STK Push.']);
-        }
-        exit;
-
     default:
         echo "Invalid action";
         break;

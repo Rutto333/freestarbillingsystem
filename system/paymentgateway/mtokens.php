@@ -36,8 +36,8 @@ function mtokens_payment_notification()
             }
         }
 
-        // Convert amount to tokens (1 KES = 5 tokens)
-        $tokensToAdd = intval($amount) * 5;
+        // Convert amount to tokens (1 KES = 2 tokens)
+        $tokensToAdd = intval($amount) * 2;
 
         // Fetch and update tokens in tbl_appconfig
         $tokenConfig = ORM::for_table('tbl_appconfig')

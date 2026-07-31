@@ -217,7 +217,7 @@ function initiatempesa()
     $PaymentGatewayRecord->payment_method = 'Mpesa Stk Push';
     $PaymentGatewayRecord->payment_channel = 'Mpesa Stk Push';
     $PaymentGatewayRecord->save();
-    
+
     header('Content-Type: application/json; charset=utf-8');
     echo json_encode(["status" => "success", "message" => "Enter Mpesa Pin to complete"]);
   } else {
@@ -227,5 +227,3 @@ function initiatempesa()
   }
 }
 
-
-//CloudTik_api_user
