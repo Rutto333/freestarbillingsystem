@@ -25,7 +25,7 @@ class top_widget
         }
         $ui->assign('imonth', $imonth);
 
-        // --- WEEKLY TOTAL (Monday–Sunday) ---
+        // --- WEEKLY TOTAL (Mondayâ€“Sunday) ---
         // Get Monday of current week
         $monday = date('Y-m-d', strtotime('monday this week'));
         // Get Sunday of current week
@@ -40,12 +40,25 @@ class top_widget
         }
         $ui->assign('iweek', $iweek);
 
-        // --- ACTIVE USERS ---
-        $u_act = ORM::for_table('tbl_user_recharges')->where('status', 'on')->count();
-        if (empty($u_act)) {
-            $u_act = '0';
+        // --- ACTIVEHOTSPOT USERS ---
+        $u_act_h = ORM::for_table('tbl_user_recharges')
+        ->where('status', 'on')
+        ->where('type','Hotspot')
+        ->count();
+        if (empty($u_act_h)) {
+            $u_act_h = '0';
         }
-        $ui->assign('u_act', $u_act);
+        $ui->assign('u_act_h', $u_act_h);
+
+        // --- ACTIVE PPPOE USERS ---
+        $u_act_e = ORM::for_table('tbl_user_recharges')
+        ->where('status', 'on')
+        ->where('type','PPPOE')
+        ->count();
+        if (empty($u_act_e)) {
+            $u_act_e = '0';
+        }
+        $ui->assign('u_act_e', $u_act_e);
 
         // --- TOTAL USERS (ALL RECHARGES) ---
         $u_all = ORM::for_table('tbl_user_recharges')->count();

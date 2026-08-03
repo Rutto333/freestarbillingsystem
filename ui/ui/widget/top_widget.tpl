@@ -108,7 +108,8 @@
             </span>
             <div class="info-box-content" style="color: #FFFFFF;">
                 <span class="info-box-text" style="font-weight: bold;">{Lang::T('Active')}</span>
-                <span class="info-box-number" style="font-size: 18px; font-weight: bold;">{$u_act}</span>
+                <span class="info-box-number" style="font-size: 15px; font-weight: bold;">Hotspot:{$u_act_h}</span>
+                <span class="info-box-number" style="font-size: 15px; font-weight: bold;">PPPOE:{$u_act_e}</span>
                 <a href="{Text::url('plan/list')}" class="small d-block mt-2" style="text-decoration: underline; color: #FFFFFF;">
                     Manage Plans
                 </a>
