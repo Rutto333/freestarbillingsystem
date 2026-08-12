@@ -26,7 +26,7 @@ switch ($action) {
             foreach ($plans as $plan) {
                 $router = ORM::for_table('tbl_routers')->where('name', $plan['routers'])->find_one();
 
-                // ✅ Skip if router is offline
+                // âœ… Skip if router is offline
                 if ($router && strtolower($router['status']) == 'offline') {
                     $log .= "SKIPPED (Router Offline): {$plan['name_plan']} | {$plan['routers']}<br>";
                     continue;
@@ -55,7 +55,7 @@ switch ($action) {
             foreach ($plans as $plan) {
                 $router = ORM::for_table('tbl_routers')->where('name', $plan['routers'])->find_one();
 
-                // ✅ Skip if router is offline
+                // âœ… Skip if router is offline
                 if ($router && strtolower($router['status']) == 'offline') {
                     $log .= "SKIPPED (Router Offline): {$plan['name_plan']} | {$plan['routers']}<br>";
                     continue;
@@ -250,20 +250,20 @@ switch ($action) {
         $router = ORM::for_table('tbl_routers')->where('name', $routerName)->find_one();
 
         if (!$router) {
-            // Router not found → delete locally only
+            // Router not found â†’ delete locally only
             $d->delete();
             r2(getUrl('services/hotspot'), 'w', Lang::T('Router not found. Plan deleted locally only.'));
             break;
         }
 
-        // If router is offline → delete locally but not from router
+        // If router is offline â†’ delete locally but not from router
         if ($router->status !== 'Online') {
             $d->delete();
             r2(getUrl('services/hotspot'), 'w', Lang::T('Router is offline. Plan deleted locally. Please sync when router is online.'));
             break;
         }
 
-        // Router is online → proceed with device deletion
+        // Router is online â†’ proceed with device deletion
         if ($_app_stage != 'demo') {
             $dvc = Package::getDevice($d);
             if (file_exists($dvc)) {
@@ -387,14 +387,15 @@ switch ($action) {
             }
 
             if ($offlineCheck->status === "Online") {
-                $deviceClass = $d->device;
-                if ($_app_stage != 'demo') {
-                    if (class_exists($deviceClass)) {
-                        (new $deviceClass())->add_plan($d);
-                    } else {
-                        throw new Exception(Lang::T("Device class not found: ") . $deviceClass);
-                    }
+            $dvc = Package::getDevice($d);
+            if ($_app_stage != 'demo') {
+                if (file_exists($dvc)) {
+                    require_once $dvc;
+                    (new $d['device'])->add_plan($d);
+                } else {
+                    new Exception(Lang::T("Devices Not Found"));
                 }
+            }
                 r2(getUrl('services/hotspot'), 's', Lang::T('Plan Added Successfully'));
             } else {
                 r2(getUrl("services/hotspot"), "w", Lang::T("Router is offline. Please sync the plan when the router is online."));
@@ -695,12 +696,12 @@ switch ($action) {
 
             $dvc = Package::getDevice($d);
 
-            // ✅ Check if router is online before proceeding
+            // âœ… Check if router is online before proceeding
             $router = ORM::for_table('tbl_routers')->where('name', $d['routers'])->find_one();
             if ($router && strtolower($router['status']) == 'offline') {
-                // Router offline — only delete from database
+                // Router offline â€” only delete from database
                 $d->delete();
-                r2(getUrl('services/pppoe'), 'e', Lang::T('Router offline — data deleted locally. Please sync when back online.'));
+                r2(getUrl('services/pppoe'), 'e', Lang::T('Router offline â€” data deleted locally. Please sync when back online.'));
                 break;
             }
 
