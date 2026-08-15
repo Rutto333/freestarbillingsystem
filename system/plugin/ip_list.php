@@ -112,6 +112,7 @@ function ensure_mikrotik_bindings_table()
       `package_id` int(11) DEFAULT NULL,
       `package_name` varchar(100) DEFAULT NULL,
       `expires` datetime DEFAULT NULL,
+      `status` varchar(20) DEFAULT 'active',
       PRIMARY KEY (`id`),
       KEY `router_id` (`router_id`),
       KEY `package_id` (`package_id`)
