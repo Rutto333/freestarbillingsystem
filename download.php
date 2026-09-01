@@ -431,7 +431,7 @@ fetchPlans();
                 <a href="sms:{$phone}" class="bg-yellow-600 hover:bg-yellow-700 rounded-full w-10 h-10 flex items-center justify-center transition-all duration-300">
                     <i class="fas fa-sms text-sm"></i></a>
             </div>
-            <p class="text-gray-400 text-sm">&copy; {$company} . Powered by UMS.</p>
+            <p class="text-gray-400 text-sm">&copy; {$company} . Powered by Radius HomeInaHappen.</p>
         </div>
     </div>
 </footer>
@@ -737,7 +737,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         Swal.fire({
             title: 'Connecting',
-            html: '<div class="text-center"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-700 mx-auto mb-2"></div><p>Connecting to Demo...</p></div>',
+            html: '<div class="text-center"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-700 mx-auto mb-2"></div><p>Connecting...</p></div>',
             showConfirmButton: false,
             timer: 2000
         }).then(() => document.getElementById('loginForm').submit());
