@@ -76,7 +76,7 @@ body { background: #f9fafb; }
         <div class="form-group mb-3">
           <label class="h5"><i class="fas fa-microchip"></i> {Lang::T('MAC Address')}</label>
           <p class="text-muted">{Lang::T('Enter the unique MAC address of the device (e.g. AA:BB:CC:DD:EE:FF).')}</p>
-          <input type="text" name="mac" placeholder="00:11:22:33:44:55" class="form-control" required>
+          <input  type="text" name="mac" placeholder="00:11:22:33:44:55" class="form-control" style="text-transform: uppercase;" required >
         </div>
 
         <!-- Device Name -->
@@ -150,22 +150,21 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Listen for input changes
-    macInput.addEventListener('input', checkFields);
+    macInput.addEventListener('input', function() {
+        this.value = this.value.toUpperCase();
+        checkFields();
+    });
     packageSelect.addEventListener('change', checkFields);
 
     // Show confirmation before submitting
     form.addEventListener('submit', function(e) {
-
-        // Convert MAC address to uppercase before submission
-        macInput.value = macInput.value.trim().toUpperCase();
-
         const confirmed = confirm('Are you sure you want to add this binding?');
-
         if (!confirmed) {
-            e.preventDefault();
+            e.preventDefault(); // Stop form submission if not confirmed
         }
     });
 });
 </script>
+
 
 {include file="sections/footer.tpl"}
