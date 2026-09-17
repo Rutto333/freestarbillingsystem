@@ -76,7 +76,7 @@ body { background: #f9fafb; }
         <div class="form-group mb-3">
           <label class="h5"><i class="fas fa-microchip"></i> {Lang::T('MAC Address')}</label>
           <p class="text-muted">{Lang::T('Enter the unique MAC address of the device (e.g. AA:BB:CC:DD:EE:FF).')}</p>
-          <input  type="text" name="mac" placeholder="00:11:22:33:44:55" class="form-control" style="text-transform: uppercase;" required >
+          <input type="text" name="mac" placeholder="00:11:22:33:44:55" class="form-control" required>
         </div>
 
         <!-- Device Name -->
@@ -150,10 +150,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Listen for input changes
-    macInput.addEventListener('input', function() {
-        this.value = this.value.toUpperCase();
-        checkFields();
-    });
+    macInput.addEventListener('input', checkFields);
     packageSelect.addEventListener('change', checkFields);
 
     // Show confirmation before submitting

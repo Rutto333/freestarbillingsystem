@@ -107,7 +107,7 @@ function mikrotik_ipbinding_add() {
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') return;
 
     $routerId    = $_POST['router'];
-    $mac         = $_POST['mac']; // must be real MAC
+    $mac = strtoupper(trim($_POST['mac'] ?? ''));// must be real MAC
     $type        = 'bypassed';
     $device_name = $_POST['device_name'] ?? '';
     $comment     = $_POST['comment'] ?? '';
