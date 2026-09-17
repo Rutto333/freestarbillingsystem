@@ -155,13 +155,17 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Show confirmation before submitting
     form.addEventListener('submit', function(e) {
+
+        // Convert MAC address to uppercase before submission
+        macInput.value = macInput.value.trim().toUpperCase();
+
         const confirmed = confirm('Are you sure you want to add this binding?');
+
         if (!confirmed) {
-            e.preventDefault(); // Stop form submission if not confirmed
+            e.preventDefault();
         }
     });
 });
 </script>
-
 
 {include file="sections/footer.tpl"}

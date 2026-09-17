@@ -174,7 +174,7 @@ function mikrotik_ipbinding_add() {
             'status'       => 'active'
         ])->save();
 
-    header("Location: " . U . "plugin/mikrotik_ipbinding_ui/$routerId");
+    header("Location: " . U . "plugin/ip_list_ui/$routerId");
     exit;
 }
 
