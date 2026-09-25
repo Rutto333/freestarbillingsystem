@@ -1,5 +1,6 @@
 <?php
 
+require_once __DIR__ . '/../plugin/mikrotik_ipbinding.php';
 
 function MpesatillStk_validate_config()
 {
@@ -146,30 +147,43 @@ function MpesatillStk_payment_notification()
         exit();
     }
 
-    if ($response_code == "0") {
-        $now = date('Y-m-d H:i:s');
-        $date = date('Y-m-d');
-        $time = date('H:i:s');
+if ($response_code == "0") {
+    $now  = date('Y-m-d H:i:s');
+    $date = date('Y-m-d');
+    $time = date('H:i:s');
 
-        if (!Package::rechargeUser($UserId, $PaymentGatewayRecord->routers, $PaymentGatewayRecord->plan_id, $PaymentGatewayRecord->gateway, 'STK-Push', $mpesa_code )) {
-            $PaymentGatewayRecord->status = 2;
-            $PaymentGatewayRecord->paid_date = $now;
-            $PaymentGatewayRecord->gateway_trx_id = $mpesa_code;
-            $PaymentGatewayRecord->save();
-        } else {
-            // Update tbl_recharges if needed
-            $PaymentGatewayRecord->status = 2;
-            $PaymentGatewayRecord->paid_date = $now;
-            $PaymentGatewayRecord->gateway_trx_id = $mpesa_code;
-            $PaymentGatewayRecord->save();
-        }
+    $tvMac = trim($PaymentGatewayRecord->mac_address ?? '');
 
-        $user = ORM::for_table('tbl_customers')->where('username', $PaymentGatewayRecord->username)->find_one();
-        if ($user) {
-            $currentBalance = $user->balance;
-            $user->balance = $currentBalance + $amount_paid;
-            $user->save();
-        }
-        exit();
+    if ($tvMac !== '') {
+        // Paid for a TV -> bypass by MAC on the MikroTik instead of creating a hotspot user
+        $router = ORM::for_table('tbl_routers')->where('name', $PaymentGatewayRecord->routers)->find_one();
+
+        $ok = mikrotik_ipbinding_create(
+            $router->id,
+            $tvMac,
+            $PaymentGatewayRecord->plan_id,
+            'TV-' . $UserId,        // device_name
+            'STK ' . $mpesa_code    // comment
+        );
+    } else {
+        // Normal purchase -> existing hotspot user flow, unchanged
+        $ok = Package::rechargeUser(
+            $UserId, $PaymentGatewayRecord->routers, $PaymentGatewayRecord->plan_id,
+            $PaymentGatewayRecord->gateway, 'STK-Push', $mpesa_code
+        );
     }
+
+    if (!$ok) {
+        $PaymentGatewayRecord->status = 2;
+        $PaymentGatewayRecord->paid_date = $now;
+        $PaymentGatewayRecord->gateway_trx_id = $mpesa_code;
+        $PaymentGatewayRecord->save();
+    } else {
+        $PaymentGatewayRecord->status = 2;
+        $PaymentGatewayRecord->paid_date = $now;
+        $PaymentGatewayRecord->gateway_trx_id = $mpesa_code;
+        $PaymentGatewayRecord->save();
+    }
+    exit();
+}
 }

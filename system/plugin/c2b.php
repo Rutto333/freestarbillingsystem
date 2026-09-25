@@ -63,7 +63,7 @@ function generateAccessToken()
     curl_setopt($curl, CURLOPT_USERPWD, $mpesa_consumer_key . ':' . $mpesa_consumer_secret);
     curl_setopt($curl, CURLOPT_TIMEOUT, 30);
     curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, true);
-    
+
     $result = curl_exec($curl);
     $httpCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
     curl_close($curl);
@@ -141,7 +141,7 @@ function RegisterUrl()
     curl_setopt($curl, CURLOPT_POSTFIELDS, $data_string);
     curl_setopt($curl, CURLOPT_TIMEOUT, 30);
     curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, true);
-    
+
     $curl_response = curl_exec($curl);
     $httpCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
     curl_close($curl);
@@ -212,7 +212,7 @@ function processPayment($amount, $billRef, $phoneNumber, $transID, $FirstName)
         // Handle till payments - if billRef is empty, use phone number
         if (!empty($billRef)) {
             $identifier = trim($billRef); // Remove whitespace
-            
+
             // Case-insensitive search for username
             $user_recharge = ORM::for_table('tbl_user_recharges')
                 ->where_raw('LOWER(username) = ?', [strtolower($identifier)])
@@ -220,7 +220,7 @@ function processPayment($amount, $billRef, $phoneNumber, $transID, $FirstName)
                 ->find_one();
         } else {
             $identifier = trim($FirstName); // Remove whitespace
-            
+
             // Case-insensitive search for username using FirstName
             $user_recharge = ORM::for_table('tbl_user_recharges')
                 ->where_raw('LOWER(username) = ?', [strtolower($identifier)])
@@ -231,7 +231,7 @@ function processPayment($amount, $billRef, $phoneNumber, $transID, $FirstName)
         if ($user_recharge) {
             // Check if customer has active package before processing
             $hasActivePackage = checkActivePackage($user_recharge['customer_id']);
-            
+
             if ($hasActivePackage) {
                 // Customer has active package, add amount to balance instead
                 $result = processBalanceTopup($amount, $identifier, $phoneNumber, $transID, $FirstName);
@@ -300,12 +300,12 @@ function processPackagePurchase($user_recharge, $amount, $transID, $identifier, 
                         $whatsappMessage .= "• Validity: {$plan['validity']}{$plan['validity_unit']}\n";
                     }
 
-                    if ($excess > 0) {               
+                    if ($excess > 0) {
                         $whatsappMessage .= "• Current Balance: KES " . number_format($customer->balance, 2) . "\n";
                     }
 
                     $whatsappMessage .= "• Transaction ID: {$transID}\n";
-                    $whatsappMessage .= "• Activated: " . date('d/m/Y H:i:s') . "\n\n";                   
+                    $whatsappMessage .= "• Activated: " . date('d/m/Y H:i:s') . "\n\n";
                     $whatsappMessage .= "Your internet is now active! Enjoy browsing!\n\n";
                     if (class_exists('Message')) {
                         sendWhatsAppMessage($phone, $whatsappMessage);
@@ -338,7 +338,7 @@ function processBalanceTopup($amount, $identifier, $phoneNumber, $transID, $Firs
 
         if (!empty($identifier)) {
             $identifier = trim($identifier); // Remove whitespace
-            
+
             // Case-insensitive search for username
             $customer = ORM::for_table('tbl_customers')
                 ->where_raw('LOWER(username) = ?', [strtolower($identifier)])
@@ -398,12 +398,12 @@ function sendWhatsAppMessage($phoneNumber, $message)
         if (!isset($parsed_url['query'])) {
             return false;
         }
-        
+
         parse_str($parsed_url['query'], $query_params);
         if (!isset($query_params['secret'])) {
             return false;
         }
-        
+
         $secret = $query_params['secret'];
 
         // Sanitize and encode inputs
@@ -419,9 +419,9 @@ function sendWhatsAppMessage($phoneNumber, $message)
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_TIMEOUT, 30);
         curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
-        
+
         $response = curl_exec($ch);
-        
+
         if (curl_errno($ch)) {
             curl_close($ch);
             return false;
@@ -429,7 +429,7 @@ function sendWhatsAppMessage($phoneNumber, $message)
 
         curl_close($ch);
         return $response;
-        
+
     } catch (Exception $e) {
         return false;
     }
@@ -474,7 +474,7 @@ function cleanPhoneNumber($phone)
 
     // Remove any non-numeric characters except +
     $phone = preg_replace('/[^\d+]/', '', $phone);
-    
+
     // Handle different phone number formats
     $phone = (substr($phone, 0, 1) == '+') ? str_replace('+', '', $phone) : $phone;
     $phone = (substr($phone, 0, 1) == '0') ? preg_replace('/^0/', '254', $phone) : $phone;
@@ -482,7 +482,7 @@ function cleanPhoneNumber($phone)
     $phone = (substr($phone, 0, 1) == '1') ? preg_replace('/^1/', '2541', $phone) : $phone;
     $phone = (substr($phone, 0, 2) == '01') ? preg_replace('/^01/', '2541', $phone) : $phone;
     $phone = (substr($phone, 0, 2) == '07') ? preg_replace('/^07/', '2547', $phone) : $phone;
-    
+
     return $phone;
 }
 

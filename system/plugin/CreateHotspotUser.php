@@ -1,8 +1,10 @@
 <?php
+
 /// Allow requests from any origin
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type, Authorization');
+
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit;
 }
@@ -35,6 +37,20 @@ function Alloworigins()
             header('Content-Type: application/json; charset=utf-8');
             echo json_encode($ads ?: []);
             exit();
+
+        } elseif ($type == "banner_ads") {
+            if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+                header('Content-Type: application/json; charset=utf-8');
+                echo json_encode(["status" => "error", "message" => "Invalid request method"]);
+                exit();
+            }
+
+            $ads = GetBannerAds(true);
+
+            header('Content-Type: application/json; charset=utf-8');
+            echo json_encode($ads ?: []);
+            exit();
+
         }elseif ($type == "redeem_voucher") {
             RedeemVoucher();
 
@@ -53,7 +69,6 @@ function Alloworigins()
         }
     }
 }
-
 function VerifyHotspot()
 {
     $input = json_decode(file_get_contents('php://input'), true);
@@ -241,6 +256,47 @@ function CreateHostspotUser()
 
         // --- Route: free plan ? direct recharge, paid plan ? STK push ---
         if ($isFree) {
+            // TV + free plan -> bypass by MAC, skip the hotspot-user flow entirely
+            if (!empty($mac_address)) {
+                $router = ORM::for_table('tbl_routers')->where('id', $routerId)->find_one();
+                if (!$router) {
+                    header('Content-Type: application/json; charset=utf-8');
+                    echo json_encode(["status" => "error", "message" => "Router not found"]);
+                    exit();
+                }
+
+                try {
+                    $ok = mikrotik_ipbinding_create(
+                        $routerId,
+                        $mac_address,
+                        $planId,
+                        'TV-' . $UserId,   // device_name
+                        'Free Trial'       // comment
+                    );
+
+                    header('Content-Type: application/json; charset=utf-8');
+                    if ($ok) {
+                        echo json_encode([
+                            "status"   => "success",
+                            "username" => $user_account,
+                            "message"  => "Free plan activated on TV"
+                        ]);
+                    } else {
+                        echo json_encode([
+                            "status"  => "error",
+                            "message" => "Failed to bypass TV. It may already be active or the IP pool is full."
+                        ]);
+                    }
+                } catch (Throwable $e) {
+                    header('Content-Type: application/json; charset=utf-8');
+                    echo json_encode([
+                        "status"  => "error",
+                        "message" => $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine()
+                    ]);
+                }
+                exit();
+            }
+
             $note = 'FREE-' . strtoupper(substr(md5(uniqid()), 0, 8));
 
             // Set globals required by Package::rechargeUser
@@ -863,7 +919,57 @@ function GetTickerAds($active_only = false)
         $ads[] = [
             'id'         => $value['id'],
             'message'    => $value['message'],
-            'link'       => $value['link'],
+            'status'     => $value['status'],
+            'sort_order' => $value['sort_order'],
+        ];
+    }
+    return $ads;
+}
+
+
+// Get Banner Ads
+function EnsureBannerAdsTable()
+{
+    ORM::for_table('tbl_banner_ads')->raw_execute("
+        CREATE TABLE IF NOT EXISTS tbl_banner_ads (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            title VARCHAR(150) NULL,
+            image_url VARCHAR(500) NOT NULL,
+            link VARCHAR(500) NULL,
+            status TINYINT(1) NOT NULL DEFAULT 1,
+            sort_order INT NOT NULL DEFAULT 0,
+            start_date DATE NULL,
+            end_date DATE NULL,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    ");
+}
+
+function GetBannerAds($active_only = false)
+{
+    EnsureBannerAdsTable();
+
+    $query = ORM::for_table('tbl_banner_ads')->order_by_asc('sort_order');
+
+    if ($active_only) {
+        $today = date('Y-m-d');
+        $query = $query
+            ->where('status', 1)
+            ->where_raw('(start_date IS NULL OR start_date <= ?)', [$today])
+            ->where_raw('(end_date IS NULL OR end_date >= ?)', [$today]);
+    }
+
+    $ads = [];
+    foreach ($query->find_many() as $value) {
+        $img = $value['image_url'];
+        // Turn relative paths into full URLs
+        if (!preg_match('#^https?://#i', $img) && defined('APP_URL')) {
+            $img = rtrim(APP_URL, '/') . '/' . ltrim($img, '/');
+        }
+        $ads[] = [
+            'id'         => $value['id'],
+            'title'      => $value['title'],
+            'image_url'  => $img,
             'status'     => $value['status'],
             'sort_order' => $value['sort_order'],
         ];

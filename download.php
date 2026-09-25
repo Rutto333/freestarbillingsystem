@@ -86,6 +86,7 @@ $htmlContent = <<<HTML
         </div>
     </div>
 </header>
+
 <!-- Ad Ticker -->
 <div style="background:#facc15; overflow:hidden; padding:6px 0; border-bottom:2px solid #eab308;">
   <div id="ticker-wrap" style="display:flex; align-items:center;">
@@ -122,7 +123,7 @@ $htmlContent = <<<HTML
   ];
 
   function setTickerText(messages) {
-        const text = messages.join("   •   ");
+        const text = messages.join("   â€¢   ");
         spans.forEach(el => el.textContent = text);
     }
 
@@ -184,6 +185,119 @@ $htmlContent = <<<HTML
   fetchAds();
 })();
 </script>
+
+<!-- Picture Ad Banner -->
+<style>
+  #ad-banner { display:none; position:relative; width:100%; max-width:720px; margin:8px auto 0; padding:0 12px; }
+  #ad-banner .ad-frame {
+    position:relative; width:100%; aspect-ratio:16/6; /* reserves space, no layout jump */
+    border-radius:12px; overflow:hidden; background:#e5e7eb;
+    box-shadow:0 4px 12px rgba(0,0,0,.15);
+  }
+  #ad-banner img {
+    position:absolute; inset:0; width:100%; height:100%; object-fit:cover;
+    opacity:0; transition:opacity .6s ease;
+  }
+  #ad-banner img.active { opacity:1; }
+  #ad-banner .ad-label {
+    position:absolute; top:6px; left:6px; z-index:2;
+    background:rgba(0,0,0,.55); color:#fff; font-size:10px; padding:2px 6px; border-radius:4px;
+  }
+  #ad-banner .ad-dots { position:absolute; bottom:6px; left:0; right:0; display:flex; justify-content:center; gap:5px; z-index:2; }
+  #ad-banner .ad-dots span { width:6px; height:6px; border-radius:50%; background:rgba(255,255,255,.5); }
+  #ad-banner .ad-dots span.active { background:#fff; }
+</style>
+
+<div id="ad-banner">
+  <div class="ad-frame">
+    <span class="ad-label">Ad</span>
+    <div id="ad-slides"></div>
+    <div class="ad-dots" id="ad-dots"></div>
+  </div>
+</div>
+
+<script>
+(function () {
+  const banner = document.getElementById('ad-banner');
+  const slidesBox = document.getElementById('ad-slides');
+  const dotsBox = document.getElementById('ad-dots');
+  const ROTATE_MS = 5000;
+
+  // Fallback ads, used if the server returns nothing.
+  // Leave the array empty ([]) to hide the banner when there are no ads.
+  const fallbackAds = [
+    // { image: 'https://yourdomain.co.ke/ads/promo1.jpg', link: 'https://wa.me/254795789363' }
+  ];
+
+  function render(ads) {
+    if (!ads.length) return;
+    slidesBox.innerHTML = '';
+    dotsBox.innerHTML = '';
+
+    ads.forEach((ad, i) => {
+      const img = document.createElement('img');
+      img.src = ad.image;
+      img.alt = 'Advertisement';
+      img.loading = 'eager';
+      if (i === 0) img.classList.add('active');
+
+      if (ad.link) {
+        const a = document.createElement('a');
+        a.href = ad.link;
+        a.target = '_blank';
+        a.rel = 'noopener';
+        a.style.cssText = 'position:absolute;inset:0;display:block;';
+        a.appendChild(img);
+        slidesBox.appendChild(a);
+      } else {
+        slidesBox.appendChild(img);
+      }
+
+      const dot = document.createElement('span');
+      if (i === 0) dot.classList.add('active');
+      dotsBox.appendChild(dot);
+    });
+
+    banner.style.display = 'block';
+
+    if (ads.length > 1) {
+      let current = 0;
+      const imgs = slidesBox.querySelectorAll('img');
+      const dots = dotsBox.querySelectorAll('span');
+      setInterval(() => {
+        imgs[current].classList.remove('active');
+        dots[current].classList.remove('active');
+        current = (current + 1) % imgs.length;
+        imgs[current].classList.add('active');
+        dots[current].classList.add('active');
+      }, ROTATE_MS);
+    }
+  }
+
+  async function loadBannerAds() {
+    try {
+      const res = await fetch(
+        '{$appUrl}/index.php?_route=plugin/CreateHotspotuser&type=plugin/CreateHotspotuser&type=banner_ads',
+        { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({}) }
+      );
+      if (!res.ok) throw new Error('Network error');
+      const data = await res.json();
+      // Expected: [{ "image_url": "...", "link": "...", "status": 1 }, ...]
+      const ads = Array.isArray(data)
+        ? data.filter(a => Number(a.status) === 1 && a.image_url)
+                .map(a => ({ image: a.image_url, link: a.link || '' }))
+        : [];
+      render(ads.length ? ads : fallbackAds);
+    } catch (e) {
+      console.error(e);
+      render(fallbackAds);
+    }
+  }
+
+  loadBannerAds();
+})();
+</script>
+
 <div class="container mx-auto px-3 py-2">
     <div class="glass-effect rounded-xl overflow-hidden shadow-lg mb-3 slide-in">
         <div class="p-2">
@@ -219,6 +333,11 @@ async function fetchPlans() {
             const plans = dataPlan
                 .flatMap(router => router.plans_hotspot || [])
                 .sort((a, b) => parseFloat(a.price) - parseFloat(b.price));
+
+            // Share the same packages with the "Buy for TV" section
+            window.allPlans = plans;
+            if (window.renderTvPlans) window.renderTvPlans(plans);
+
             const colorSchemes = [
                 { grad: 'from-blue-500 to-blue-600', bg: 'bg-blue-100', text: 'text-blue-800' },
                 { grad: 'from-green-500 to-emerald-600', bg: 'bg-green-100', text: 'text-green-800' },
@@ -420,6 +539,77 @@ fetchPlans();
     </div>
 </div>
 
+<!-- ================= BUY FOR TV (MAC bypass) ================= -->
+<section id="tvSection" class="container mx-auto px-3 mt-8">
+
+    <!-- Collapsed teaser: shown first, opens the full section on click -->
+    <div id="tvTeaser" class="bg-white rounded-xl shadow-lg overflow-hidden cursor-pointer hover:shadow-xl transition-shadow"
+         onclick="openTvSection()">
+        <div class="bg-gradient-to-r from-slate-800 to-slate-900 text-white px-5 py-4 flex items-center justify-between">
+            <div>
+                <h2 class="text-lg md:text-xl font-bold">
+                    <i class="fas fa-tv mr-2"></i>Buy for TV
+                </h2>
+            </div>
+            <i class="fas fa-chevron-right text-slate-300"></i>
+        </div>
+    </div>
+
+    <!-- Full section: hidden until the teaser above is clicked -->
+    <div id="tvSectionBody" class="bg-white rounded-xl shadow-lg overflow-hidden" style="display:none;">
+        <div class="bg-gradient-to-r from-slate-800 to-slate-900 text-white px-5 py-4 text-center relative">
+            <button onclick="closeTvSection()" class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300 hover:text-white">
+                <i class="fas fa-arrow-left"></i>
+            </button>
+            <h2 class="text-xl md:text-2xl font-bold">
+                <i class="fas fa-tv mr-2"></i>Buy for TV
+            </h2>
+            <p class="text-slate-300 text-sm mt-1">
+                To activate for your TV first enter its MAC address below. You can find it in your TV's network settings.
+                Then choose a package to activate for your TV.
+            </p>
+        </div>
+
+        <div class="p-5">
+            <label for="tvMacInput" class="text-sm font-medium text-gray-700 mb-2 block">
+                TV MAC Address
+            </label>
+            <input
+                id="tvMacInput"
+                type="text"
+                inputmode="text"
+                autocomplete="off"
+                autocapitalize="characters"
+                maxlength="17"
+                placeholder="AA:BB:CC:DD:EE:FF"
+                class="w-full rounded-lg border bg-gray-50 px-4 py-3 font-mono tracking-wider uppercase focus:ring-2 focus:ring-slate-500">
+            <p id="tvMacHint" class="mt-2 text-xs text-gray-500">
+                12 characters (0-9, A-F). Colons are added for you.
+            </p>
+
+            <h3 class="text-base font-bold text-gray-800 mt-5 mb-2 text-center">Pick a package for your TV</h3>
+            <div id="tvPlansContainer" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2">
+                <p class="col-span-full text-center text-sm text-gray-500 py-4">
+                    <i class="fas fa-spinner fa-spin mr-1"></i> Loading packages...
+                </p>
+            </div>
+        </div>
+    </div>
+</section>
+<script>
+function openTvSection() {
+    document.getElementById('tvTeaser').style.display = 'none';
+    const body = document.getElementById('tvSectionBody');
+    body.style.display = 'block';
+    body.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+function closeTvSection() {
+    document.getElementById('tvSectionBody').style.display = 'none';
+    document.getElementById('tvTeaser').style.display = 'block';
+}
+</script>
+
+
 <footer class="bg-gray-900 text-white py-6 mt-8">
     <div class="container mx-auto px-4">
         <div class="border-t border-gray-700 pt-4 text-center">
@@ -431,7 +621,7 @@ fetchPlans();
                 <a href="sms:{$phone}" class="bg-yellow-600 hover:bg-yellow-700 rounded-full w-10 h-10 flex items-center justify-center transition-all duration-300">
                     <i class="fas fa-sms text-sm"></i></a>
             </div>
-            <p class="text-gray-400 text-sm">&copy; {$company} . Powered by Radius HomeInaHappen.</p>
+            <p class="text-gray-400 text-sm">&copy; {$company} . Powered by Umejipanga Solutions.</p>
         </div>
     </div>
 </footer>
@@ -743,6 +933,209 @@ document.addEventListener('DOMContentLoaded', function() {
         }).then(() => document.getElementById('loginForm').submit());
     });
 });
+</script>
+
+
+<!-- ================= BUY FOR TV: logic ================= -->
+<script>
+(function () {
+    const API = '{$appUrl}/index.php?_route=plugin/CreateHotspotuser';
+    const macInput = document.getElementById('tvMacInput');
+    const macHint  = document.getElementById('tvMacHint');
+    const tvContainer = document.getElementById('tvPlansContainer');
+
+    // ---- MAC helpers ----
+    const cleanMac = (v) => (v || '').replace(/[^0-9a-fA-F]/g, '').toUpperCase().slice(0, 12);
+    const formatMac = (v) => cleanMac(v).match(/.{1,2}/g)?.join(':') || '';
+    const isValidMac = (v) => /^([0-9A-F]{2}:){5}[0-9A-F]{2}$/.test(v);
+
+    // Auto-format as the user types / pastes (accepts AA-BB-.., AABB.., aa:bb:..)
+    macInput.addEventListener('input', () => {
+        macInput.value = formatMac(macInput.value);
+        const len = cleanMac(macInput.value).length;
+        if (len === 0) {
+            macHint.className = 'mt-2 text-xs text-gray-500';
+            macHint.textContent = '12 characters (0-9, A-F). Colons are added for you.';
+        } else if (len < 12) {
+            macHint.className = 'mt-2 text-xs text-amber-600';
+            macHint.textContent = `${len}/12 characters entered`;
+        } else {
+            macHint.className = 'mt-2 text-xs text-green-600';
+            macHint.textContent = 'MAC address looks good';
+        }
+    });
+
+    // Deterministic per-TV account number (does not touch the phone's cookie)
+    const tvAccountNumber = (mac) => 'TV' + mac.replace(/:/g, '');
+
+    // ---- Render the same packages ----
+    const colorSchemes = [
+        { grad: 'from-blue-500 to-blue-600', bg: 'bg-blue-100', text: 'text-blue-800' },
+        { grad: 'from-green-500 to-emerald-600', bg: 'bg-green-100', text: 'text-green-800' },
+        { grad: 'from-purple-500 to-purple-600', bg: 'bg-purple-100', text: 'text-purple-800' },
+    ];
+
+    window.renderTvPlans = function (plans) {
+        tvContainer.innerHTML = '';
+         // Remove free packages
+        plans = plans.filter(plan => parseFloat(plan.price) > 0);
+        plans.forEach((plan, index) => {
+            const colors = colorSchemes[index % colorSchemes.length];
+            const isFree = parseFloat(plan.price) === 0;
+            const card = document.createElement('div');
+            card.className = 'flex flex-col bg-white rounded-lg shadow-md hover:shadow-lg overflow-hidden transition-all duration-300 active:scale-95 cursor-pointer ' +
+                (isFree ? 'border-2 border-dashed border-amber-400' : 'border border-gray-100');
+            card.innerHTML = `
+                <div class='bg-gradient-to-r ${isFree ? 'from-amber-400 to-yellow-500' : colors.grad} text-white py-2'>
+                    <h2 class='text-xs sm:text-sm font-bold text-center px-2'>${plan.planname}</h2>
+                </div>
+                <div class='px-2 py-3 flex-grow ${isFree ? 'bg-amber-50' : colors.bg}'>
+                    ${isFree
+                        ? `<div class='flex justify-center mb-2'><span class='bg-amber-100 text-amber-700 text-xs font-bold px-3 py-1 rounded-full border border-amber-300'>No Payment Needed</span></div>`
+                        : `<p class='text-xl sm:text-2xl font-bold ${colors.text} mb-1 text-center'><span class='text-xs font-medium text-gray-700'>${plan.currency}</span> ${plan.price}</p>`}
+                    <p class='text-xs text-gray-700 mb-2 text-center'><i class='far fa-clock mr-1'></i> ${plan.validity} ${plan.timelimit}</p>
+                    <div class='text-xs text-gray-600 text-center space-y-1'>
+                        <div><i class='fas fa-tv mr-1'></i>Works on your TV</div>
+                        <div><i class='fas fa-shield-alt mr-1'></i>Secure Connection</div>
+                    </div>
+                </div>
+                <div class='px-2 py-2 bg-white'>
+                    <button type='button' class='w-full bg-gradient-to-r ${isFree ? 'from-amber-400 to-yellow-500' : colors.grad} text-white font-bold py-2.5 px-3 rounded-lg text-xs sm:text-sm'>
+                        <i class='fas fa-tv mr-1'></i> ${isFree ? 'Activate Free' : 'Buy for TV'}
+                    </button>
+                </div>`;
+            card.addEventListener('click', () => buyForTv(plan, isFree));
+            tvContainer.appendChild(card);
+        });
+    };
+
+    // If the plans finished loading before this script ran
+    if (window.allPlans) window.renderTvPlans(window.allPlans);
+
+    // ---- Purchase flow ----
+    async function buyForTv(plan, isFree) {
+        const mac = formatMac(macInput.value);
+        if (!isValidMac(mac)) {
+            macInput.focus();
+            macInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            Swal.fire('MAC Address Needed', 'Please enter your TV\'s full MAC address (e.g. AA:BB:CC:DD:EE:FF) first.', 'warning');
+            return;
+        }
+        const accountNumber = tvAccountNumber(mac);
+
+        if (isFree) {
+            const ok = await Swal.fire({
+                title: 'Activate TV?',
+                html: `<p class="text-sm text-gray-600">TV MAC</p><p class="font-mono font-bold text-lg">${mac}</p>`,
+                showCancelButton: true,
+                confirmButtonText: 'Yes, activate',
+                confirmButtonColor: '#1e40af'
+            });
+            if (!ok.isConfirmed) return;
+            Swal.fire({
+                title: 'Activating...',
+                html: '<div class="text-center"><div class="inline-block animate-spin rounded-full h-12 w-12 border-b-4 border-blue-600 mb-4"></div><p>Setting up your TV...</p></div>',
+                showConfirmButton: false,
+                allowOutsideClick: false
+            });
+            try {
+                await requestGrant('', plan, mac, accountNumber);
+                showTvSuccess(mac);
+            } catch (err) {
+                Swal.fire('Activation Failed', err.message, 'error');
+            }
+            return;
+        }
+
+        Swal.fire({
+            title: 'Pay for TV',
+            html: `<p class="text-sm text-gray-600">TV MAC</p>
+                   <p class="font-mono font-bold text-lg mb-2">${mac}</p>
+                   <p class="text-sm text-gray-600 mb-1">${plan.planname} &middot; ${plan.currency} ${plan.price}</p>
+                   <p class="text-sm text-gray-600 mb-2">Enter the M-Pesa number to pay with</p>`,
+            input: 'tel',
+            inputAttributes: { placeholder: '07XXXXXXXX or 01XXXXXXXX', class: 'text-center text-lg' },
+            inputValidator: (value) => !value ? 'Please enter your phone number!' : null,
+            showCancelButton: true,
+            confirmButtonColor: '#1e40af',
+            confirmButtonText: '<i class="fas fa-credit-card mr-1"></i> Pay Now',
+            showLoaderOnConfirm: true,
+            preConfirm: async (phoneNumber) => {
+                try {
+                    await requestGrant(formatPhoneNumber(phoneNumber), plan, mac, accountNumber);
+                    showPaymentProcessing();
+                    pollTvPayment(accountNumber, mac);
+                } catch (err) {
+                    Swal.showValidationMessage(err.message);
+                }
+            }
+        });
+    }
+
+    async function requestGrant(phone, plan, mac, accountNumber) {
+        const response = await fetch(API + '&type=grant', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                phone_number: phone,
+                plan_id: plan.planId,
+                router_id: plan.routerId,
+                account_number: accountNumber,
+                mac_address: mac,      // used server-side to bypass the TV by MAC
+                device_type: 'tv'
+            })
+        });
+        if (!response.ok) throw new Error('Network response was not ok');
+        const data = await response.json();
+        if (data.status === 'error') throw new Error(data.message);
+        return data;
+    }
+
+    function pollTvPayment(accountNumber, mac) {
+        let done = false;
+        const interval = setInterval(() => {
+            $.ajax({
+                url: API + '&type=verify',
+                method: 'POST',
+                data: JSON.stringify({ account_number: accountNumber, mac_address: mac, device_type: 'tv' }),
+                contentType: 'application/json',
+                dataType: 'json',
+                success: (data) => {
+                    if (done) return;
+                    if (data.Status === 'success') {
+                        done = true;
+                        clearInterval(interval);
+                        clearTimeout(timeout);
+                        showTvSuccess(mac);
+                    } else if (data.Status === 'danger') {
+                        done = true;
+                        clearInterval(interval);
+                        clearTimeout(timeout);
+                        Swal.fire('Payment Issue', data.Message, 'error');
+                    }
+                }
+            });
+        }, 2000);
+        const timeout = setTimeout(() => {
+            if (done) return;
+            clearInterval(interval);
+            Swal.fire('Payment Timeout', 'Payment verification timed out', 'warning');;
+        }, 300000);
+    }
+
+    function showTvSuccess(mac) {
+        Swal.fire({
+            icon: 'success',
+            title: 'TV Activated!',
+            html: `<div class="text-center">
+                    <i class="fas fa-tv text-4xl text-green-500 mb-2"></i>
+                    <p class="font-mono font-bold">${mac}</p>
+                    <p class="text-sm text-gray-600 mt-2">No login needed. Turn your TV's Wi-Fi off and on (or restart the TV) and it will connect automatically.</p>
+                   </div>`,
+            confirmButtonColor: '#1e40af'
+        });
+    }
+})();
 </script>
 </body>
 </html>

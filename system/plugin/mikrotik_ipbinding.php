@@ -38,6 +38,48 @@ function mikrotik_ipbinding_ui() {
     $ui->display('mikrotik_ipbinding.tpl');
 }
 
+function mikrotik_ipbinding_edit_ui()
+{
+    global $ui, $routes;
+    _admin();
+
+    $ui->assign('_system_menu', 'Mikrotik IP Binding');
+    $admin = Admin::_info();
+    $ui->assign('_admin', $admin);
+
+    // Binding id comes from the route segment
+    $bindingId = $routes['2'] ?? 0;
+
+    $binding = ORM::for_table('tbl_mikrotik_bindings')->find_one($bindingId);
+    if (!$binding) {
+        r2(U . 'plugin/mikrotik_ipbinding_ui', 'e', 'Binding not found');
+        return;
+    }
+
+    $routerId = $binding->router_id;
+
+    // Fetch routers (for the selector, kept consistent with the add form)
+    $routers = ORM::for_table('tbl_routers')->where('enabled', 1)->find_many();
+    $ui->assign('routers', $routers);
+    $ui->assign('router', $routerId);
+
+    // Fetch selected router
+    $selectedRouter = ORM::for_table('tbl_routers')->find_one($routerId);
+
+    // Fetch packages available for this router
+    $packages = ORM::for_table('tbl_plans')
+        ->where('routers', $selectedRouter->name ?? '')
+        ->where('enabled', 1)
+        ->find_many();
+    $ui->assign('packages', $packages);
+
+    // Pass the binding itself so the tpl can pre-fill the form
+    $ui->assign('binding', $binding);
+
+    $ui->display('mikrotik_ipbinding_edit.tpl');
+}
+
+
 // Fetch next free IP from Mikrotik pool
 function mikrotik_get_next_ip($routerId) {
     $router = ORM::for_table('tbl_routers')->find_one($routerId);
@@ -180,6 +222,233 @@ function mikrotik_ipbinding_add() {
     exit;
 }
 
+/**
+ * Create (or extend) a bypassed IP binding for a MAC. No redirects, no die().
+ * Returns true on success, false on failure.
+ */
+function mikrotik_ipbinding_create($routerId, $macRaw, $package_id, $device_name = '', $comment = '')
+{
+    try {
+        $rawMac = preg_replace('/[^a-fA-F0-9]/', '', $macRaw);
+        if (strlen($rawMac) !== 12) return false;
+        $mac = strtoupper(implode(':', str_split($rawMac, 2)));
+        $type = 'bypassed';
+
+        $package = ORM::for_table('tbl_plans')->find_one($package_id);
+        $router  = ORM::for_table('tbl_routers')->find_one($routerId);
+        if (!$package || !$router) return false;
+
+        $newDuration = "+{$package->validity} {$package->validity_unit}";
+
+        // TV already has an active binding -> just extend it (repeat purchase)
+        $existing = ORM::for_table('tbl_mikrotik_bindings')
+            ->where('router_id', $routerId)
+            ->where('mac_address', $mac)
+            ->where('status', 'active')
+            ->find_one();
+
+        if ($existing) {
+            // Guard against double-processing: if this exact recharge event
+            // (same comment, e.g. order/transaction reference) was already
+            // applied to this binding, don't extend again.
+            if ($comment !== '' && $existing->comment === $comment) {
+                _log("mikrotik_ipbinding_create: duplicate recharge ignored (mac={$mac}, comment={$comment})");
+                return true;
+            }
+
+            $base = max(time(), strtotime($existing->expires ?: 'now'));
+            $existing->expires      = date('Y-m-d H:i:s', strtotime($newDuration, $base));
+            $existing->package_id   = $package_id;
+            $existing->package_name = $package->name_plan;
+            $existing->comment      = $comment; // persist so the next duplicate call can be detected
+            $existing->save();
+            return true;
+        }
+
+        $expires = date('Y-m-d H:i:s', strtotime($newDuration));
+
+        $ip = mikrotik_get_next_ip($routerId);
+        if (!$ip) return false;
+
+        $client = Mikrotik::getClient($router->ip_address, $router->username, $router->password);
+
+        // Step 1: static DHCP lease (ignore "already exists" errors)
+        try {
+            $dhcpReq = new RouterOS\Request('/ip/dhcp-server/lease/add');
+            $dhcpReq->setArgument('mac-address', $mac);
+            $dhcpReq->setArgument('address', $ip);
+            $dhcpReq->setArgument('comment', $device_name);
+            $client->sendSync($dhcpReq);
+        } catch (\Throwable $e) {
+            _log('TV DHCP lease: ' . $e->getMessage());
+        }
+
+        // Step 2: hotspot ip-binding
+        $req = new RouterOS\Request('/ip/hotspot/ip-binding/add');
+        $req->setArgument('address', $ip);
+        $req->setArgument('mac-address', $mac);
+        $req->setArgument('type', $type);
+        $req->setArgument('comment', $device_name);
+        $response = $client->sendSync($req);
+
+        $mikrotik_id = null;
+        foreach ($response as $item) {
+            $mikrotik_id = $item->getProperty('.id');
+            if ($mikrotik_id) break;
+        }
+        if (!$mikrotik_id) {
+            $reqFind = new RouterOS\Request('/ip/hotspot/ip-binding/print');
+            $reqFind->setQuery(RouterOS\Query::where('mac-address', $mac));
+            foreach ($client->sendSync($reqFind) as $item) {
+                $mikrotik_id = $item->getProperty('.id');
+                if ($mikrotik_id) break;
+            }
+        }
+        if (!$mikrotik_id) return false;
+
+        ORM::for_table('tbl_mikrotik_bindings')->create()->set([
+            'router_id'    => $routerId,
+            'mikrotik_id'  => $mikrotik_id,
+            'ip_address'   => $ip,
+            'mac_address'  => $mac,
+            'device_name'  => $device_name,
+            'type'         => $type,
+            'comment'      => $comment,
+            'package_id'   => $package_id,
+            'package_name' => $package->name_plan ?? '',
+            'expires'      => $expires,
+            'status'       => 'active'
+        ])->save();
+
+        return true;
+    } catch (\Throwable $e) {
+        _log('mikrotik_ipbinding_create failed: ' . $e->getMessage());
+        return false;
+    }
+}
+
+
+// Sync DB with router state
+function mikrotik_ipbinding_sync() {
+
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') return;
+
+    $routerId = $_POST['router'] ?? null;
+
+    try {
+        mikrotik_ipbinding_sync($routerId ?: null);
+        echo json_encode(['status' => 'success', 'message' => 'Bindings synced successfully.']);
+    } catch (\Throwable $e) {
+        _log('mikrotik_ipbinding_sync_ui failed: ' . $e->getMessage());
+        echo json_encode(['status' => 'error', 'message' => 'Sync failed. Check logs for details.']);
+    }
+
+    // 1. Expire anything past its date first
+    mikrotik_remove_expired_bindings();
+
+    // 2. Reconcile active bindings against the router
+    $routers = $routerId
+        ? [ORM::for_table('tbl_routers')->find_one($routerId)]
+        : ORM::for_table('tbl_routers')->where('enabled', 1)->find_many();
+
+    foreach ($routers as $router) {
+        if (!$router) continue;
+
+        // Skip routers that are marked offline — don't attempt anything on them
+        if (isset($router->status) && strtolower($router->status) !== 'online') {
+            _log("sync: router {$router->id} ({$router->name}) is offline — skipping");
+            echo "Router {$router->id} ({$router->name}) is offline. Skipped.\n";
+            continue;
+        }
+
+        $activeBindings = ORM::for_table('tbl_mikrotik_bindings')
+            ->where('router_id', $router->id)
+            ->where('status', 'active')
+            ->find_many();
+
+        if (!$activeBindings) continue;
+
+        try {
+            $client = Mikrotik::getClient($router->ip_address, $router->username, $router->password);
+        } catch (\Throwable $e) {
+            _log("sync: cannot connect to router {$router->id}: " . $e->getMessage());
+            continue;
+        }
+        // Pull current router state once per router (cheap vs. per-binding lookups)
+        $routerMacs = [];
+        try {
+            $reqIpb = new RouterOS\Request('/ip/hotspot/ip-binding/print');
+            foreach ($client->sendSync($reqIpb) as $item) {
+                $mac = $item->getProperty('mac-address');
+                if ($mac) $routerMacs[strtoupper($mac)] = $item->getProperty('.id');
+            }
+        } catch (\Throwable $e) {
+            _log("sync: failed to fetch ip-bindings from router {$router->id}: " . $e->getMessage());
+            continue; // don't risk mass-recreating if we can't even read current state
+        }
+
+        foreach ($activeBindings as $binding) {
+            $mac = strtoupper($binding->mac_address);
+
+            if (isset($routerMacs[$mac])) {
+                // Present on router — make sure our stored mikrotik_id is still correct
+                if ($binding->mikrotik_id !== $routerMacs[$mac]) {
+                    $binding->mikrotik_id = $routerMacs[$mac];
+                    $binding->save();
+                }
+                continue;
+            }
+
+            // Missing on router but marked active in DB -> recreate it
+            _log("sync: recreating missing binding for {$mac} on router {$router->id}");
+
+            try {
+                // Static DHCP lease (ignore "already exists")
+                try {
+                    $dhcpReq = new RouterOS\Request('/ip/dhcp-server/lease/add');
+                    $dhcpReq->setArgument('mac-address', $mac);
+                    $dhcpReq->setArgument('address', $binding->ip_address);
+                    $dhcpReq->setArgument('comment', $binding->device_name);
+                    $client->sendSync($dhcpReq);
+                } catch (\Throwable $e) {
+                    _log("sync: DHCP lease re-add failed for {$mac}: " . $e->getMessage());
+                }
+
+                // Hotspot ip-binding
+                $req = new RouterOS\Request('/ip/hotspot/ip-binding/add');
+                $req->setArgument('address', $binding->ip_address);
+                $req->setArgument('mac-address', $mac);
+                $req->setArgument('type', $binding->type ?: 'bypassed');
+                $req->setArgument('comment', $binding->device_name);
+                $response = $client->sendSync($req);
+
+                $newId = null;
+                foreach ($response as $item) {
+                    $newId = $item->getProperty('.id');
+                    if ($newId) break;
+                }
+                if (!$newId) {
+                    $reqFind = new RouterOS\Request('/ip/hotspot/ip-binding/print');
+                    $reqFind->setQuery(RouterOS\Query::where('mac-address', $mac));
+                    foreach ($client->sendSync($reqFind) as $item) {
+                        $newId = $item->getProperty('.id');
+                        if ($newId) break;
+                    }
+                }
+
+                if ($newId) {
+                    $binding->mikrotik_id = $newId;
+                    $binding->save();
+                    echo "Re-added binding on router: {$mac}\n";
+                } else {
+                    _log("sync: could not confirm re-added binding id for {$mac} on router {$router->id}");
+                }
+            } catch (\Throwable $e) {
+                _log("sync: failed to recreate binding for {$mac} on router {$router->id}: " . $e->getMessage());
+            }
+        }
+    }
+}
 // cron job to remove expired bindings
 function mikrotik_remove_expired_bindings()
 {
@@ -199,10 +468,16 @@ function mikrotik_remove_expired_bindings()
 
         try {
 
-            $router = ORM::for_table('tbl_routers')
-                ->find_one($binding->router_id);
+            $router = ORM::for_table('tbl_routers')->find_one($binding->router_id);
 
             if (!$router) {
+                continue;
+            }
+
+            // Skip router cleanup if offline — DB is already updated above
+            if (isset($router->status) && strtolower($router->status) !== 'online') {
+                _log("expire: router {$router->id} ({$router->name}) is offline — skipped router cleanup for {$binding->mac_address}");
+                echo "Router {$router->id} ({$router->name}) is offline. Skipped router cleanup for {$binding->mac_address}.\n";
                 continue;
             }
 
@@ -212,9 +487,7 @@ function mikrotik_remove_expired_bindings()
                 $router->password
             );
 
-            // -----------------------------
             // Remove Hotspot IP Binding
-            // -----------------------------
             try {
                 $req = new RouterOS\Request('/ip/hotspot/ip-binding/remove');
                 $req->setArgument('.id', $binding->mikrotik_id);
@@ -223,9 +496,7 @@ function mikrotik_remove_expired_bindings()
                 _log("Unable to remove hotspot binding {$binding->mikrotik_id}: " . $e->getMessage());
             }
 
-            // -----------------------------
             // Remove DHCP Lease
-            // -----------------------------
             if (!empty($binding->mac_address)) {
 
                 $leaseReq = new RouterOS\Request('/ip/dhcp-server/lease/print');
@@ -236,7 +507,6 @@ function mikrotik_remove_expired_bindings()
                 $leases = $client->sendSync($leaseReq);
 
                 foreach ($leases as $lease) {
-
                     $leaseId = $lease->getProperty('.id');
 
                     if ($leaseId) {
@@ -248,44 +518,57 @@ function mikrotik_remove_expired_bindings()
             }
 
             // -----------------------------
-            // Disable Local Record
+            // 1. Disable in database
             // -----------------------------
             $binding->status = 'inactive';
             $binding->save();
 
-            echo "Expired IP Binding disabled: {$binding->mac_address}\n";
+            echo "Removed from router: {$binding->mac_address}\n";
 
         } catch (Throwable $e) {
-
-            _log("Expired Binding Error: " . $e->getMessage());
-
-            echo "Failed disabling {$binding->mac_address}: "
-                . $e->getMessage() . "\n";
+            _log("Expired Binding Router Error ({$binding->mac_address}): " . $e->getMessage());
+            echo "Router cleanup failed for {$binding->mac_address}: " . $e->getMessage() . "\n";
         }
     }
 }
 
 // Update binding inline
-function mikrotik_ipbinding_update() {
-    $routerId = $_POST['router'];
-    $id = $_POST['id'];
-    $field = $_POST['field'];
-    $value = $_POST['value'];
+function mikrotik_ipbinding_update()
+{
+    global $routes;
+    _admin();
 
-    $mikrotik = ORM::for_table('tbl_routers')->find_one($routerId);
-    if (!$mikrotik) return;
+    $bindingId  = $_POST['id'] ?? 0;
+    $routerId   = $_POST['router'] ?? 0;
+    $mac        = trim($_POST['mac'] ?? '');
+    $deviceName = trim($_POST['device_name'] ?? '');
+    $type       = $_POST['type'] ?? 'regular';
+    $comment    = trim($_POST['comment'] ?? '');
+    $packageId  = $_POST['package'] ?? 0;
 
-    $client = Mikrotik::getClient($mikrotik->ip_address, $mikrotik->username, $mikrotik->password);
-    $req = new RouterOS\Request('/ip/hotspot/ip-binding/set');
-    $req->setArgument('.id', $id);
-    $req->setArgument($field, $value);
-    $client->sendSync($req);
-
-    $binding = ORM::for_table('tbl_mikrotik_bindings')->where('mikrotik_id', $id)->find_one();
-    if ($binding) {
-        $binding->$field = $value;
-        $binding->save();
+    $binding = ORM::for_table('tbl_mikrotik_bindings')->find_one($bindingId);
+    if (!$binding) {
+        r2(U . 'plugin/mikrotik_ipbinding_ui', 'e', 'Binding not found');
+        return;
     }
 
-    echo json_encode(["status" => "success"]);
+    if ($mac === '' || $packageId === '') {
+        r2(U . 'plugin/mikrotik_ipbinding_edit_ui/' . $bindingId, 'e', 'MAC address and package are required');
+        return;
+    }
+
+    $binding->router_id    = $routerId;
+    $binding->mac_address  = $mac;
+    $binding->device_name  = $deviceName;
+    $binding->type         = $type;
+    $binding->comment      = $comment;
+    $binding->package_id   = $packageId;
+    $binding->updated_at   = date('Y-m-d H:i:s');
+    $binding->save();
+
+    // Optional: push the change to the Mikrotik router itself here,
+    // mirroring whatever mikrotik_ipbinding_add() does after insert.
+
+    r2(U . 'plugin/mikrotik_ipbinding_ui/' . $routerId, 's', 'Binding updated successfully');
 }
+
