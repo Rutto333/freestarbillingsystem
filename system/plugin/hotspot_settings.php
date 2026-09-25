@@ -485,7 +485,7 @@ function save_banner_image($file)
     }
     @chmod($dest, 0644);
 
-    return [true, 'ads/' . $name];
+    return [true, 'system/uploads/ads/' . $name];
 }
 
 /**
