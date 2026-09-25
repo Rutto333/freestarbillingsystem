@@ -986,22 +986,22 @@ document.addEventListener('DOMContentLoaded', function() {
             card.className = 'flex flex-col bg-white rounded-lg shadow-md hover:shadow-lg overflow-hidden transition-all duration-300 active:scale-95 cursor-pointer ' +
                 (isFree ? 'border-2 border-dashed border-amber-400' : 'border border-gray-100');
             card.innerHTML = `
-                <div class='bg-gradient-to-r ${isFree ? 'from-amber-400 to-yellow-500' : colors.grad} text-white py-2'>
-                    <h2 class='text-xs sm:text-sm font-bold text-center px-2'>${plan.planname}</h2>
+                <div class='bg-gradient-to-r \${isFree ? 'from-amber-400 to-yellow-500' : colors.grad} text-white py-2'>
+                    <h2 class='text-xs sm:text-sm font-bold text-center px-2'\${plan.planname}</h2>
                 </div>
-                <div class='px-2 py-3 flex-grow ${isFree ? 'bg-amber-50' : colors.bg}'>
-                    ${isFree
+                <div class='px-2 py-3 flex-grow \${isFree ? 'bg-amber-50' : colors.bg}'>
+                    \${isFree
                         ? `<div class='flex justify-center mb-2'><span class='bg-amber-100 text-amber-700 text-xs font-bold px-3 py-1 rounded-full border border-amber-300'>No Payment Needed</span></div>`
-                        : `<p class='text-xl sm:text-2xl font-bold ${colors.text} mb-1 text-center'><span class='text-xs font-medium text-gray-700'>${plan.currency}</span> ${plan.price}</p>`}
-                    <p class='text-xs text-gray-700 mb-2 text-center'><i class='far fa-clock mr-1'></i> ${plan.validity} ${plan.timelimit}</p>
+                        : `<p class='text-xl sm:text-2xl font-bold \${colors.text} mb-1 text-center'><span class='text-xs font-medium text-gray-700'>\${plan.currency}</span>\${plan.price}</p>`}
+                    <p class='text-xs text-gray-700 mb-2 text-center'><i class='far fa-clock mr-1'></i> \${plan.validity} \${plan.timelimit}</p>
                     <div class='text-xs text-gray-600 text-center space-y-1'>
                         <div><i class='fas fa-tv mr-1'></i>Works on your TV</div>
                         <div><i class='fas fa-shield-alt mr-1'></i>Secure Connection</div>
                     </div>
                 </div>
                 <div class='px-2 py-2 bg-white'>
-                    <button type='button' class='w-full bg-gradient-to-r ${isFree ? 'from-amber-400 to-yellow-500' : colors.grad} text-white font-bold py-2.5 px-3 rounded-lg text-xs sm:text-sm'>
-                        <i class='fas fa-tv mr-1'></i> ${isFree ? 'Activate Free' : 'Buy for TV'}
+                    <button type='button' class='w-full bg-gradient-to-r \${isFree ? 'from-amber-400 to-yellow-500' : colors.grad} text-white font-bold py-2.5 px-3 rounded-lg text-xs sm:text-sm'>
+                        <i class='fas fa-tv mr-1'></i> \${isFree ? 'Activate Free' : 'Buy for TV'}
                     </button>
                 </div>`;
             card.addEventListener('click', () => buyForTv(plan, isFree));
