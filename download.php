@@ -1050,8 +1050,8 @@ document.addEventListener('DOMContentLoaded', function() {
         Swal.fire({
             title: 'Pay for TV',
             html: `<p class="text-sm text-gray-600">TV MAC</p>
-                   <p class="font-mono font-bold text-lg mb-2">${mac}</p>
-                   <p class="text-sm text-gray-600 mb-1">${plan.planname} &middot; ${plan.currency} ${plan.price}</p>
+                   <p class="font-mono font-bold text-lg mb-2">\${mac}</p>
+                   <p class="text-sm text-gray-600 mb-1">\${plan.planname} &middot; \${plan.currency} \${plan.price}</p>
                    <p class="text-sm text-gray-600 mb-2">Enter the M-Pesa number to pay with</p>`,
             input: 'tel',
             inputAttributes: { placeholder: '07XXXXXXXX or 01XXXXXXXX', class: 'text-center text-lg' },
@@ -1129,7 +1129,7 @@ document.addEventListener('DOMContentLoaded', function() {
             title: 'TV Activated!',
             html: `<div class="text-center">
                     <i class="fas fa-tv text-4xl text-green-500 mb-2"></i>
-                    <p class="font-mono font-bold">${mac}</p>
+                    <p class="font-mono font-bold">\${mac}</p>
                     <p class="text-sm text-gray-600 mt-2">No login needed. Turn your TV's Wi-Fi off and on (or restart the TV) and it will connect automatically.</p>
                    </div>`,
             confirmButtonColor: '#1e40af'
