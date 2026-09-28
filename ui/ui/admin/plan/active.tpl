@@ -22,6 +22,17 @@
             <form id="site-search" method="post" action="{Text::url('')}plan/list/">
                 <div class="panel-body">
                     <div class="row row-no-gutters" style="padding: 5px">
+                        <div class="col-lg-2 ">
+                            <div class="input-group">
+                                <div class="input-group-btn">
+                                    <a class="btn btn-danger" title="Clear Search Query"
+                                        href="{Text::url('')}plan/list"><span
+                                            class="glyphicon glyphicon-remove-circle"></span></a>
+                                </div>
+                                <input type="text" name="search" class="form-control"
+                                    placeholder="{Lang::T("Search")}..." value="{$search}">
+                            </div>
+                        </div>
                         <div class="col-lg-2 col-xs-4">
                             <select class="form-control" id="router" name="router">
                                 <option value="">{Lang::T("Location")}</option>
@@ -70,15 +81,35 @@
                                 <th>{Lang::T("Created On")}</th>
                                 <th>{Lang::T("Expires On")}</th>
                                 <th>{Lang::T("Method")}</th>
-                                <th><a href="{Text::url('')}routers/list">{Lang::T("Router")}</a></th>
+                                <th><a href="{Text::url('')}routers/list">{Lang::T("Location")}</a></th>
                                 <th>{Lang::T("Manage")}</th>
                             </tr>
                         </thead>
                         <tbody>
                             {foreach $d as $ds}
                                 <tr {if $ds['status']=='off' }class="danger" {/if}>
-                                    <td>{$ds['username']}</td>
-                                    <td>{$ds['plan_id']}</td>
+                                    <td>
+                                        {if $ds['customer_id'] == '0'}
+                                            <a
+                                                href="{Text::url('plan/voucher/&search=')}{$ds['username']}">{$ds['username']}</a>
+                                        {else}
+                                            <a href="{Text::url('customers/viewu/')}{$ds['username']}">{$ds['username']}</a>
+                                        {/if}
+                                    </td>
+                                    <td>
+                                        {if $ds['type'] == 'Hotspot'}
+                                            <a href="{Text::url('')}services/edit/{$ds['plan_id']}">{$ds['namebp']}</a>
+                                            <span
+                                                api-get-text="{Text::url('')}autoload/customer_is_active/{$ds['username']}/{$ds['plan_id']}"></span>
+                                        {elseif $ds['type'] == 'PPPOE'}
+                                            <a href="{Text::url('')}services/pppoe-edit/{$ds['plan_id']}">{$ds['namebp']}</a>
+                                            <span
+                                                api-get-text="{Text::url('')}autoload/customer_is_active/{$ds['username']}/{$ds['plan_id']}"></span>
+                                        {elseif $ds['type'] == 'VPN'}
+                                            <a href="{Text::url('')}services/vpn-edit/{$ds['plan_id']}">{$ds['namebp']}</a>
+                                        {/if}
+
+                                    </td>
                                     <td>{$ds['type']}</td>
                                     <td>{Lang::dateAndTimeFormat($ds['recharged_on'],$ds['recharged_time'])}</td>
                                     <td>{Lang::dateAndTimeFormat($ds['expiration'],$ds['time'])}</td>
