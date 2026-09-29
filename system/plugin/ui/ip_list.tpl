@@ -69,10 +69,7 @@
     <h4>Mikrotik IP Bindings</h4>
     <small>Manage and monitor all your bindings easily</small>
   </div>
-  <div class="d-flex" style="gap:8px;">
-    <button id="syncBindings" class="btn btn-back" type="button">
-       <i class="fas fa-sync-alt"></i> Sync
-    </button>
+  <div class="d-flex">
     <a href="?_route=plugin/mikrotik_ipbinding_ui" class="btn btn-back">
        <i class="fas fa-plus-circle"></i> Add New
     </a>
@@ -157,25 +154,11 @@
                 <span class="badge bg-success">Active</span>
               {/if}
             </td>
-          <td class="text-center">
-            <div class="d-flex justify-content-center" style="gap:5px;">
-
-              <!-- Edit -->
-              <a href="?_route=plugin/mikrotik_ipbinding_edit_ui&id={$b.id}"
-                class="btn btn-primary btn-sm"
-                title="Edit Binding">
-                <i class="fas fa-edit"></i>
-              </a>
-
-              <!-- Delete -->
-              <button class="btn btn-danger btn-sm remove-binding"
-                      data-id="{$b.id}"
-                      title="Delete Binding">
+            <td class="text-center">
+              <button class="btn btn-danger btn-sm remove-binding" data-id="{$b.id}">
                 <i class="ion-trash-b"></i>
               </button>
-
-            </div>
-          </td>
+            </td>
           </tr>
           {/foreach}
         {else}
@@ -195,79 +178,27 @@
 {literal}
 <script>
 var $j = jQuery.noConflict();
-
 $j(document).ready(function() {
+    $j('#bindingsTable').DataTable({ responsive: true });
 
-    $j('#bindingsTable').DataTable({
-        responsive: true
-    });
-
-    $j('#syncBindings').on('click', function() {
-        var $btn = $j(this);
-
+    $j('.remove-binding').on('click', function() {
+        var id = $j(this).data('id');
         Swal.fire({
-            title: 'Sync all routers?',
-            text: 'This will sync bindings across all available routers. Expired bindings will also be removed.',
-            icon: 'question',
+            title: 'Are you sure?',
+            text: "This will permanently remove the binding.",
+            icon: 'warning',
             showCancelButton: true,
-            confirmButtonColor: '#0f6d42',
+            confirmButtonColor: '#d33',
             cancelButtonColor: '#3085d6',
-            confirmButtonText: 'Yes, sync all'
+            confirmButtonText: 'Yes, remove it!'
         }).then((result) => {
-
-            if (!result.isConfirmed) return;
-
-            $btn.prop('disabled', true)
-                .html('<i class="fas fa-sync-alt fa-spin"></i> Syncing...');
-
-            Swal.fire({
-                title: 'Syncing all routers...',
-                text: 'This may take a moment.',
-                allowOutsideClick: false,
-                allowEscapeKey: false,
-                didOpen: () => {
-                    Swal.showLoading();
-                }
-            });
-
-            // Send request without specifying a router
-            $j.post(
-                "{/literal}{$_url}plugin/mikrotik_ipbinding_sync{literal}",
-                {},
-                function(resp) {
-
-                    Swal.fire({
-                        icon: (resp && resp.status === 'success')
-                            ? 'success'
-                            : 'error',
-
-                        title: (resp && resp.status === 'success')
-                            ? 'Sync complete'
-                            : 'Sync failed',
-
-                        text: (resp && resp.message)
-                            ? resp.message
-                            : ''
-                    }).then(() => {
-                        location.reload();
-                    });
-
-                },
-                'json'
-            ).fail(function() {
-
-                Swal.fire(
-                    'Error',
-                    'Sync request failed. Check logs.',
-                    'error'
-                );
-
-                $btn.prop('disabled', false)
-                    .html('<i class="fas fa-sync-alt"></i> Sync');
-            });
+            if(result.isConfirmed) {
+                $j.post("{/literal}{$_url}plugin/ip_list_remove{literal}", {id: id}, function(resp) {
+                    location.reload();
+                }, 'json');
+            }
         });
     });
-
 });
 </script>
 {/literal}
