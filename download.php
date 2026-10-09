@@ -123,7 +123,7 @@ $htmlContent = <<<HTML
   ];
 
   function setTickerText(messages) {
-        const text = messages.join("   â€¢   ");
+        const text = messages.join(" . ");
         spans.forEach(el => el.textContent = text);
     }
 
