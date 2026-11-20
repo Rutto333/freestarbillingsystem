@@ -888,7 +888,7 @@ function rechargePppoe()
 
         $routerId_pppoe = $FindrouterId ? $FindrouterId->id : null;
 
-        $mac_pppoe = ["22:42:59:0C:45:58"];
+        $mac_pppoe = '';
         InitiateStkpush($phone_pppoe, $planId_pppoe, $routerId_pppoe, $username_pppoe, $mac_pppoe);
 
 
